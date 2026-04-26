@@ -36,9 +36,7 @@ export const getParadaInfo = async (paradaId: string): Promise<any> => {
 
 export const getRecorridoLinea = async (empresa: string, linea: string): Promise<RecorridoLinea> => {
   const params = new URLSearchParams({
-    conGeometria: 'true',
-    usarCoordenadasWGS84: 'true',
-    conParadas: 'true'
+    conGeometria: 'true'
   });
   
   const response = await fetch(`${API_GOBIERNO}/linea/${empresa}/${linea}?${params}`);

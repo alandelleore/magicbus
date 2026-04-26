@@ -57,10 +57,12 @@ export default function DetalleScreen() {
         if (found) {
           setLoadingRecorrido(true);
           try {
+            console.log('Cargando recorrido para línea:', found.codigoLinea);
             const rec = await getRecorridoLinea('1', found.codigoLinea);
+            console.log('Recorrido cargado:', rec);
             setRecorrido(rec);
-          } catch (e) {
-            console.log('No se pudo cargar recorrido');
+          } catch (e: any) {
+            console.log('No se pudo cargar recorrido:', e?.message || e);
           } finally {
             setLoadingRecorrido(false);
           }
