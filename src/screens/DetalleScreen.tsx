@@ -26,38 +26,20 @@ const ROSARIO_CENTER = { lat: -32.9441, lng: -60.6346 };
 
 function MockMap({ center }: { center: [number, number] }) {
   const [lat, lng] = center;
+  const zoom = 14;
+  
   return (
-    <Box sx={{ 
-      height: '100%', 
-      width: '100%', 
-      borderRadius: 2,
-      bgcolor: '#e8f5e9',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      p: 2,
-      border: '2px solid #4caf50',
-    }}>
-      <Typography variant="h6" color="success.dark" gutterBottom>
-        🗺️ Mapa de Rosario
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        Centro: {lat.toFixed(4)}, {lng.toFixed(4)}
-      </Typography>
-      <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <Box sx={{ fontSize: 32 }}>📍</Box>
-          <Typography variant="caption">Parada</Typography>
-        </Box>
-        <Box sx={{ textAlign: 'center' }}>
-          <Box sx={{ fontSize: 32 }}>🚌</Box>
-          <Typography variant="caption">Coche</Typography>
-        </Box>
-      </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
-        (Mock - mapa en desarrollo)
-      </Typography>
+    <Box sx={{ height: '100%', width: '100%', borderRadius: 2, overflow: 'hidden', border: '1px solid #ddd' }}>
+      <iframe
+        width="100%"
+        height="100%"
+        frameBorder={0}
+        scrolling="no"
+        marginHeight={0}
+        marginWidth={0}
+        src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01}%2C${lat - 0.01}%2C${lng + 0.01}%2C${lat + 0.01}&layer=mapnik&marker=${lat}%2C${lng}`}
+        title="Rosario"
+      />
     </Box>
   );
 }
