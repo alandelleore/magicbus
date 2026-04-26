@@ -96,12 +96,12 @@ export default function DetalleScreen() {
     return `${km.toFixed(2)} km.`;
   };
 
-  const center = useMemo(() => {
-    if (arribo) {
-      return { lat: arribo.latitud, lng: arribo.longitud };
+const center = useMemo(() => {
+    if (parada) {
+      return { lat: parada.punto_y, lng: parada.punto_x };
     }
     return { lat: -32.9441, lng: -60.6346 };
-  }, [arribo]);
+  }, [parada]);
 
   const horaArribo = arribo && arribo.tiempoArriboMinutos
     ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
