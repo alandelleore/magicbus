@@ -20,8 +20,10 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getParadaInfo, getRecorridoLinea } from '../services/api';
-import type { Arribo, ParadaInfo, RecorridoLinea } from '../types';
+import { getParadaInfo } from '../services/api';
+import { getLineaGobierno } from '../services/apiGobierno';
+import { useLineasGobierno } from '../hooks/useLineasGobierno';
+import type { Arribo, ParadaInfo } from '../types';
 
 const defaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -40,9 +42,11 @@ const busIcon = L.icon({
 export default function DetalleScreen() {
   const { id, interno } = useParams<{ id: string; interno: string }>();
   const navigate = useNavigate();
+  const { buscarLineaId } = useLineasGobierno();
+  
   const [arribo, setArribo] = useState<Arribo | null>(null);
   const [parada, setParada] = useState<ParadaInfo | null>(null);
-  const [recorrido, setRecorrido] = useState<RecorridoLinea | null>(null);
+  const [lineaDetalle, setLineaDetalle] = useState<any>(null);
   const [loadingRecorrido, setLoadingRecorrido] = useState(false);
 
   useEffect(() => {
@@ -57,11 +61,14 @@ export default function DetalleScreen() {
         if (found) {
           setLoadingRecorrido(true);
           try {
-            const lineaGobierno = found.descripcionLinea || found.codigoLinea;
-            console.log('Cargando recorrido para línea:', lineaGobierno);
-            const rec = await getRecorridoLinea('1', lineaGobierno);
-            console.log('Recorrido cargado:', rec);
-            setRecorrido(rec);
+            const lineaId = buscarLineaId(found.descripcionLinea);
+            console.log('Buscando lineaId:', found.descripcionLinea, '->', lineaId);
+            
+            if (lineaId) {
+              const rec = await getLineaGobierno('1', lineaId);
+              console.log('Recorrido cargado:', rec);
+              setLineaDetalle(rec);
+            }
           } catch (e: any) {
             console.log('No se pudo cargar recorrido:', e?.message || e);
           } finally {
@@ -73,7 +80,7 @@ export default function DetalleScreen() {
       }
     };
     fetchData();
-  }, [id, interno]);
+  }, [id, interno, buscarLineaId]);
 
   const handleShare = async () => {
     if (!arribo || !parada) return;
@@ -102,27 +109,22 @@ export default function DetalleScreen() {
     : null;
 
   const parseGeoJSON = (geojson: any): [number, number][] => {
-    if (!geojson?.features) return [];
+    if (!geojson?.coordinates) return [];
     const coords: [number, number][] = [];
-    geojson.features.forEach((feature: any) => {
-      if (feature.geometry?.coordinates) {
-        const c = feature.geometry.coordinates;
-        if (Array.isArray(c[0])) {
-          c.forEach((point: number[]) => {
-            if (point.length >= 2) coords.push([point[1], point[0]]);
-          });
-        } else if (c.length >= 2) {
-          coords.push([c[1], c[0]]);
-        }
+    geojson.coordinates.forEach((line: number[][]) => {
+      if (Array.isArray(line)) {
+        line.forEach((point: number[]) => {
+          if (point.length >= 2) coords.push([point[1], point[0]]);
+        });
       }
     });
     return coords;
   };
 
-  const idaCoords = recorrido?.geojsonIda ? parseGeoJSON(recorrido.geojsonIda) : [];
-  const vueltaCoords = recorrido?.geojsonVuelta ? parseGeoJSON(recorrido.geojsonVuelta) : [];
+  const idaCoords = lineaDetalle?.geojsonIda ? parseGeoJSON(lineaDetalle.geojsonIda) : [];
+  const vueltaCoords = lineaDetalle?.geojsonVuelta ? parseGeoJSON(lineaDetalle.geojsonVuelta) : [];
   
-  const lineaColor = recorrido?.color || '#1976d2';
+  const colorLinea = lineaDetalle?.color || '#1976d2';
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -140,7 +142,7 @@ export default function DetalleScreen() {
       <Container maxWidth="sm" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', py: 2 }}>
         {arribo && (
           <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: lineaColor }}>
+            <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: colorLinea }}>
               {arribo.descripcionLinea} {arribo.descripcionCortaBandera}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -191,11 +193,11 @@ export default function DetalleScreen() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             
-            {recorrido && idaCoords.length > 0 && (
-              <Polyline positions={idaCoords} color={lineaColor} weight={4} opacity={0.7} />
+            {lineaDetalle && idaCoords.length > 0 && (
+              <Polyline positions={idaCoords} color={colorLinea} weight={4} opacity={0.7} />
             )}
-            {recorrido && vueltaCoords.length > 0 && (
-              <Polyline positions={vueltaCoords} color={lineaColor} weight={3} opacity={0.4} dashArray="10, 10" />
+            {lineaDetalle && vueltaCoords.length > 0 && (
+              <Polyline positions={vueltaCoords} color={colorLinea} weight={3} opacity={0.4} dashArray="10, 10" />
             )}
 
             {parada && (
