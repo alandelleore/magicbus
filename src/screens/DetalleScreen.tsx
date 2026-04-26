@@ -184,7 +184,7 @@ const PROJ_ORIGIN_LON = -60.5;
                 <ListItem>
                   <ListItemText
                     primary="Parada"
-                    secondary={`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`}
+                    secondary={(`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`)}
                   />
                 </ListItem>
               )}
