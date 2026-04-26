@@ -28,20 +28,10 @@ export function useLineasGobierno() {
   const mapaLineas = useMemo(() => {
     const map = new Map<string, LineaGobierno>();
     lineas.forEach((linea) => {
-      const nombreLimpio = linea.nombre.replace(/\s+/g, ' ').trim();
-      map.set(nombreLimpio, linea);
-      map.set(linea.nombreCorto.trim(), linea);
       map.set(linea.codigoEMR, linea);
-      
-      const matchSolo = linea.nombre.match(/^(\d+)/);
-      if (matchSolo) {
-        map.set(matchSolo[1], linea);
-      }
-      
-      // Agregar variaciones comunes
-      if (linea.nombre.includes('NEGRO')) map.set(linea.codigoEMR + ' N', linea);
-      if (linea.nombre.includes('ROJO')) map.set(linea.codigoEMR + ' R', linea);
-      if (linea.nombre.includes('VERDE')) map.set(linea.codigoEMR + ' VERDE', linea);
+      if (linea.nombreCorto) map.set(linea.nombreCorto, linea);
+      if (linea.nombre) map.set(linea.nombre, linea);
+      if (linea.id) map.set(linea.id, linea);
     });
     return map;
   }, [lineas]);
@@ -51,11 +41,9 @@ export function useLineasGobierno() {
     
     const limpia = descripcionLinea.trim();
     
-    // Buscar directa
     let linea = mapaLineas.get(limpia);
     if (linea) return linea.id;
     
-    // Extraer número
     const match = limpia.match(/^(\d+)/);
     if (match) {
       linea = mapaLineas.get(match[1]);

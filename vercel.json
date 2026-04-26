@@ -3,8 +3,7 @@
     { "source": "/api/proxy/search", "destination": "https://app.cuandollegarosario.com/api/public/search" },
     { "source": "/api/proxy/lineas", "destination": "https://app.cuandollegarosario.com/api/public/lineas" },
     { "source": "/api/proxy/parada/:path*", "destination": "https://app.cuandollegarosario.com/api/public/parada/:path*" },
-    { "source": "/api/gobierno/linea/:path*", "destination": "https://ws.rosario.gob.ar/ubicaciones/public/linea/:path*" },
-    { "source": "/api/gobierno/parada/:path*", "destination": "https://ws.rosario.gob.ar/ubicaciones/public/parada/:path*" },
+    { "source": "/api/gobierno/:path*", "destination": "https://ws.rosario.gob.ar/ubicaciones/public/:path*" },
     { "source": "/api/comollego/:path*", "destination": "https://comollego.rosario.gob.ar/:path*" }
   ]
 }
