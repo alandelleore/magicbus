@@ -4,6 +4,6 @@
     { "source": "/api/proxy/lineas", "destination": "https://app.cuandollegarosario.com/api/public/lineas" },
     { "source": "/api/proxy/parada/:path*", "destination": "https://app.cuandollegarosario.com/api/public/parada/:path*" },
     { "source": "/api/gobierno/:path*", "destination": "https://ws.rosario.gob.ar/ubicaciones/public/:path*" },
-    { "source": "/api/comollego/:path*", "destination": "https://comollego.rosario.gob.ar/:path*" }
+    { "source": "/api/comollego/:path*", "destination": "https://comollego.rosario.gob.ar/:path*", "headers": { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" } }
   ]
 }
