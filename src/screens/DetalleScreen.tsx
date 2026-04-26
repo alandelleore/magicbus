@@ -53,7 +53,6 @@ export default function DetalleScreen() {
         const found = result.arribos?.find((a: Arribo) => a.identificadorCoche === interno);
         setArribo(found || null);
         setParada(result.parada?.[0] || null);
-        console.log('Parada coords:', result.parada?.[0]);
 
         if (found) {
           setLoadingRecorrido(true);
@@ -99,8 +98,7 @@ export default function DetalleScreen() {
 
 const center = useMemo(() => {
     if (parada) {
-      console.log('center using parada:', parada.punto_x, parada.punto_y);
-      return { lat: parada.punto_y, lng: parada.punto_x };
+      return { lat: parada.punto_x, lng: parada.punto_y };
     }
     return { lat: -32.9441, lng: -60.6346 };
   }, [parada]);
