@@ -18,9 +18,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 
-const BUS_ICON = 'https://ssl.gstatic.com/images/icons/palau/dir21_hc.png';
-const STOP_ICON = 'https://ssl.gstatic.com/images/icons/palau/dir21_gc.png';
-
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
 import { getLineaGobierno } from '../services/apiGobierno';
@@ -179,7 +176,7 @@ const center = useMemo(() => {
               <CircularProgress />
             </Box>
           ) : (
-            <GoogleMap
+<GoogleMap
               mapContainerStyle={mapContainerStyle}
               center={center}
               zoom={14}
@@ -187,17 +184,13 @@ const center = useMemo(() => {
                 disableDefaultUI: false,
                 zoomControl: true,
               }}
->
-              <Marker 
-                position={center} 
-                title={parada ? `Parada ${parada.cod_sms}` : 'Parada'}
-                icon={STOP_ICON}
-              />
+            >
+              <Marker position={center} label="📍" title={parada ? `Parada ${parada.cod_sms}` : 'Parada'} />
               {arribo && (
                 <Marker 
                   position={{ lat: arribo.latitud, lng: arribo.longitud }} 
+                  label="🚌"
                   title={`Coche ${arribo.identificadorCoche}`}
-                  icon={BUS_ICON}
                 />
               )}
             </GoogleMap>
