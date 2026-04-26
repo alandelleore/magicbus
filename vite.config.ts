@@ -20,6 +20,11 @@ export default defineConfig({
           proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
           proxyReq.setHeader('Accept', 'application/json');
         }
+      },
+      '/api/comollego': {
+        target: 'https://comollego.rosario.gob.ar',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/comollego/, '')
       }
     }
   }

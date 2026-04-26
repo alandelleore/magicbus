@@ -29,12 +29,14 @@ export interface LineaDetalle {
   geojsonVuelta: any;
 }
 
+const API_BASE = '/api/comollego';
+
 export const getLineasGobierno = async (): Promise<LineaGobierno[]> => {
-  const response = await fetch('https://comollego.rosario.gob.ar/lineas?nombre=all');
+  const response = await fetch(`${API_BASE}/lineas?nombre=all`);
   return response.json();
 };
 
 export const getLineaGobierno = async (empresa: string, lineaId: string): Promise<LineaDetalle> => {
-  const response = await fetch(`https://comollego.rosario.gob.ar/linea/${empresa}/${lineaId}`);
+  const response = await fetch(`${API_BASE}/linea/${empresa}/${lineaId}`);
   return response.json();
 };
