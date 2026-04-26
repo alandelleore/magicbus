@@ -1,15 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getLineasGobierno, type LineaGobierno } from '../services/apiGobierno';
 
+let cacheLineas: LineaGobierno[] | null = null;
+
 export function useLineasGobierno() {
-  const [lineas, setLineas] = useState<LineaGobierno[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [lineas, setLineas] = useState<LineaGobierno[]>(cacheLineas || []);
+  const [loading, setLoading] = useState(!cacheLineas);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (cacheLineas) return;
+    
     const fetchLineas = async () => {
       try {
         const data = await getLineasGobierno();
+        cacheLineas = data;
         setLineas(data);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Error cargando líneas');
@@ -28,28 +33,37 @@ export function useLineasGobierno() {
       map.set(linea.nombreCorto.trim(), linea);
       map.set(linea.codigoEMR, linea);
       
-      const matchSolo = linea.nombre.match(/^(\d+|[A-Z])\s*/);
+      const matchSolo = linea.nombre.match(/^(\d+)/);
       if (matchSolo) {
         map.set(matchSolo[1], linea);
       }
+      
+      // Agregar variaciones comunes
+      if (linea.nombre.includes('NEGRO')) map.set(linea.codigoEMR + ' N', linea);
+      if (linea.nombre.includes('ROJO')) map.set(linea.codigoEMR + ' R', linea);
+      if (linea.nombre.includes('VERDE')) map.set(linea.codigoEMR + ' VERDE', linea);
     });
     return map;
   }, [lineas]);
 
-  const buscarLineaId = (descripcionLinea: string): string | null => {
+  const buscarLineaId = useCallback((descripcionLinea: string): string | null => {
+    if (lineas.length === 0) return null;
+    
     const limpia = descripcionLinea.trim();
     
-    const linea = mapaLineas.get(limpia);
+    // Buscar directa
+    let linea = mapaLineas.get(limpia);
     if (linea) return linea.id;
-
+    
+    // Extraer número
     const match = limpia.match(/^(\d+)/);
     if (match) {
-      const encontrada = mapaLineas.get(match[1]);
-      if (encontrada) return encontrada.id;
+      linea = mapaLineas.get(match[1]);
+      if (linea) return linea.id;
     }
 
     return null;
-  };
+  }, [mapaLineas, lineas.length]);
 
   return { lineas, loading, error, buscarLineaId };
 }
