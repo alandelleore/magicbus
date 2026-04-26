@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   AppBar,
@@ -17,6 +17,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ShareIcon from "@mui/icons-material/Share";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
+import type { GoogleMapProps } from "@react-google-maps/api";
 
 import { useNavigate, useParams } from "react-router-dom";
 import { getParadaInfo } from "../services/api";
@@ -35,7 +36,7 @@ export default function DetalleScreen() {
   const { id, interno } = useParams<{ id: string; interno: string }>();
   const navigate = useNavigate();
   const { buscarLineaId } = useLineasGobierno();
-
+  
   const [arribo, setArribo] = useState<Arribo | null>(null);
   const [parada, setParada] = useState<ParadaInfo | null>(null);
   const [lineaDetalle, setLineaDetalle] = useState<any>(null);
@@ -223,7 +224,7 @@ export default function DetalleScreen() {
 <GoogleMap
               mapContainerStyle={mapContainerStyle}
               center={center}
-              zoom={14}
+              zoom={arribo ? 16 : 14}
               options={{
                 disableDefaultUI: true,
                 zoomControl: false,
