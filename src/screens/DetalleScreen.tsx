@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   AppBar,
@@ -13,36 +13,36 @@ import {
   Button,
   Grid,
   CircularProgress,
-} from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ShareIcon from '@mui/icons-material/Share';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ShareIcon from "@mui/icons-material/Share";
+import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 
-import { useNavigate, useParams } from 'react-router-dom';
-import { getParadaInfo } from '../services/api';
-import { getLineaGobierno } from '../services/apiGobierno';
-import { useLineasGobierno } from '../hooks/useLineasGobierno';
-import type { Arribo, ParadaInfo } from '../types';
+import { useNavigate, useParams } from "react-router-dom";
+import { getParadaInfo } from "../services/api";
+import { getLineaGobierno } from "../services/apiGobierno";
+import { useLineasGobierno } from "../hooks/useLineasGobierno";
+import type { Arribo, ParadaInfo } from "../types";
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
+const GOOGLE_MAPS_API_KEY = "AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk";
 
 const mapContainerStyle = {
-  width: '100%',
-  height: '350px',
+  width: "100%",
+  height: "350px",
 };
 
 export default function DetalleScreen() {
   const { id, interno } = useParams<{ id: string; interno: string }>();
   const navigate = useNavigate();
   const { buscarLineaId } = useLineasGobierno();
-  
+
   const [arribo, setArribo] = useState<Arribo | null>(null);
   const [parada, setParada] = useState<ParadaInfo | null>(null);
   const [lineaDetalle, setLineaDetalle] = useState<any>(null);
   const [loadingRecorrido, setLoadingRecorrido] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
-    id: 'google-maps-script',
+    id: "google-maps-script",
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
   });
 
@@ -51,7 +51,9 @@ export default function DetalleScreen() {
       if (!id) return;
       try {
         const result = await getParadaInfo(id);
-        const found = result.arribos?.find((a: Arribo) => a.identificadorCoche === interno);
+        const found = result.arribos?.find(
+          (a: Arribo) => a.identificadorCoche === interno,
+        );
         setArribo(found || null);
         setParada(result.parada?.[0] || null);
 
@@ -59,21 +61,26 @@ export default function DetalleScreen() {
           setLoadingRecorrido(true);
           try {
             const lineaId = buscarLineaId(found.descripcionLinea);
-            console.log('Buscando lineaId:', found.descripcionLinea, '->', lineaId);
-            
+            console.log(
+              "Buscando lineaId:",
+              found.descripcionLinea,
+              "->",
+              lineaId,
+            );
+
             if (lineaId) {
-              const rec = await getLineaGobierno('1', lineaId);
-              console.log('Recorrido cargado:', rec);
+              const rec = await getLineaGobierno("1", lineaId);
+              console.log("Recorrido cargado:", rec);
               setLineaDetalle(rec);
             }
           } catch (e: any) {
-            console.log('No se pudo cargar recorrido:', e?.message || e);
+            console.log("No se pudo cargar recorrido:", e?.message || e);
           } finally {
             setLoadingRecorrido(false);
           }
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
       }
     };
     fetchData();
@@ -82,10 +89,10 @@ export default function DetalleScreen() {
   const handleShare = async () => {
     if (!arribo || !parada) return;
     const text = `${arribo.descripcionLinea} ${arribo.descripcionCortaBandera} (Int. ${arribo.identificadorCoche}) llega en ${arribo.tiempoArriboMinutos} min. a la parada ${parada.cod_sms} (${parada.calle1Nombre} y ${parada.calle2Nombre})`;
-    
+
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Magic Bus', text });
+        await navigator.share({ title: "Magic Bus", text });
       } catch (e) {}
     } else {
       await navigator.clipboard.writeText(text);
@@ -97,36 +104,57 @@ export default function DetalleScreen() {
     return `${km.toFixed(2)} km.`;
   };
 
-const center = useMemo(() => {
+  const center = useMemo(() => {
     if (parada) {
       return { lat: parada.punto_x, lng: parada.punto_y };
     }
     return { lat: -32.9441, lng: -60.6346 };
   }, [parada]);
 
-  const horaArribo = arribo && arribo.tiempoArriboMinutos
-    ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
-    : null;
+  const horaArribo =
+    arribo && arribo.tiempoArriboMinutos
+      ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
+      : null;
 
-  const colorLinea = lineaDetalle?.color || '#1976d2';
+  const colorLinea = lineaDetalle?.color || "#1976d2";
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main' }}>
+    <Box
+      sx={{
+        flexGrow: 1,
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <AppBar position="static" elevation={0} sx={{ bgcolor: "primary.main" }}>
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={() => navigate(-1)} sx={{ mr: 2 }}>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={() => navigate(-1)}
+            sx={{ mr: 2 }}
+          >
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: "white" }}>
             Detalle
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', py: 2 }}>
+      <Container
+        maxWidth="sm"
+        sx={{ flexGrow: 1, display: "flex", flexDirection: "column", py: 2 }}
+      >
         {arribo && (
           <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: colorLinea }}>
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              gutterBottom
+              sx={{ color: colorLinea }}
+            >
               {arribo.descripcionLinea} {arribo.descripcionCortaBandera}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -137,7 +165,15 @@ const center = useMemo(() => {
               <ListItem>
                 <ListItemText
                   primary="Hora de arribo которая объявляется"
-                  secondary={horaArribo ? horaArribo.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '-'}
+                  secondary={
+                    horaArribo
+                      ? horaArribo.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })
+                      : "-"
+                  }
                 />
               </ListItem>
               <ListItem>
@@ -170,9 +206,17 @@ const center = useMemo(() => {
           </Paper>
         )}
 
-        <Box sx={{ height: 350, mb: 2, borderRadius: 2, overflow: 'hidden' }}>
+        <Box sx={{ height: 350, mb: 2, borderRadius: 2, overflow: "hidden" }}>
           {!isLoaded ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#f0f0f0' }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+                bgcolor: "#f0f0f0",
+              }}
+            >
               <CircularProgress />
             </Box>
           ) : (
@@ -181,14 +225,22 @@ const center = useMemo(() => {
               center={center}
               zoom={14}
               options={{
-                disableDefaultUI: false,
-                zoomControl: true,
+                disableDefaultUI: true,
+                zoomControl: false,
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: false,
+                keyboardShortcuts: false,
               }}
             >
-              <Marker position={center} label="📍" title={parada ? `Parada ${parada.cod_sms}` : 'Parada'} />
+              <Marker
+                position={center}
+                label="📍"
+                title={parada ? `Parada ${parada.cod_sms}` : "Parada"}
+              />
               {arribo && (
-                <Marker 
-                  position={{ lat: arribo.latitud, lng: arribo.longitud }} 
+                <Marker
+                  position={{ lat: arribo.latitud, lng: arribo.longitud }}
                   label="🚌"
                   title={`Coche ${arribo.identificadorCoche}`}
                 />
@@ -198,19 +250,24 @@ const center = useMemo(() => {
         </Box>
 
         {loadingRecorrido && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
             <CircularProgress size={24} />
           </Box>
         )}
 
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid item xs={6}>
-            <Button fullWidth variant="contained" startIcon={<ShareIcon />} onClick={handleShare}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<ShareIcon />}
+              onClick={handleShare}
+            >
               Compartir
             </Button>
           </Grid>
           <Grid item xs={6}>
-            <Button fullWidth variant="contained" onClick={() => navigate('/')}>
+            <Button fullWidth variant="contained" onClick={() => navigate("/")}>
               Volver
             </Button>
           </Grid>
