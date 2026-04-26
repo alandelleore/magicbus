@@ -101,8 +101,8 @@ export default function DetalleScreen() {
   };
 
   const center: [number, number] = parada
-    ? [parada.punto_x, parada.punto_y]
-    : [-32.9441, -60.6346];
+    ? [parada.punto_y, parada.punto_x]
+    : [-60.6346, -32.9441];
 
   const horaArribo = arribo && arribo.tiempoArriboMinutos
     ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
