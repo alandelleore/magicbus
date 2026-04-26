@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   AppBar,
@@ -25,7 +25,10 @@ import type { Arribo, ParadaInfo } from '../types';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
 
-const defaultCenter = { lat: -32.9441, lng: -60.6346 };
+const mapContainerStyle = {
+  width: '100%',
+  height: '350px',
+};
 
 export default function DetalleScreen() {
   const { id, interno } = useParams<{ id: string; interno: string }>();
@@ -37,7 +40,8 @@ export default function DetalleScreen() {
   const [lineaDetalle, setLineaDetalle] = useState<any>(null);
   const [loadingRecorrido, setLoadingRecorrido] = useState(false);
 
-  const { isLoaded, loadError } = useJsApiLoader({
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-maps-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
   });
 
@@ -92,20 +96,18 @@ export default function DetalleScreen() {
     return `${km.toFixed(2)} km.`;
   };
 
-  const center: [number, number] = parada
-    ? [parada.punto_y, parada.punto_x]
-    : [-32.9441, -60.6346];
+  const center = useMemo(() => {
+    if (parada) {
+      return { lat: parada.punto_y, lng: parada.punto_x };
+    }
+    return { lat: -32.9441, lng: -60.6346 };
+  }, [parada]);
 
   const horaArribo = arribo && arribo.tiempoArriboMinutos
     ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
     : null;
 
   const colorLinea = lineaDetalle?.color || '#1976d2';
-
-  const mapCenter = useMemo(() => ({
-    lat: -32.9441,  // hardcoded Rosario center
-    lng: -60.6346,
-  }), []);
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -133,7 +135,7 @@ export default function DetalleScreen() {
             <List dense>
               <ListItem>
                 <ListItemText
-                  primary="Hora de arribo anunciada"
+                  primary="Hora de arribo которая объявляется"
                   secondary={horaArribo ? horaArribo.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '-'}
                 />
               </ListItem>
@@ -167,38 +169,24 @@ export default function DetalleScreen() {
           </Paper>
         )}
 
-        <Box sx={{ flexGrow: 1, minHeight: 300, mb: 2, borderRadius: 2, overflow: 'hidden' }}>
-          {loadError ? (
-            <Box sx={{ p: 2, textAlign: 'center', bgcolor: '#f5f5f5', height: '100%' }}>
-              <Typography>Error cargando mapa</Typography>
-            </Box>
-          ) : !isLoaded ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#f5f5f5' }}>
+        <Box sx={{ height: 350, mb: 2, borderRadius: 2, overflow: 'hidden' }}>
+          {!isLoaded ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#f0f0f0' }}>
               <CircularProgress />
             </Box>
           ) : (
             <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '100%', borderRadius: '8px' }}
-              center={mapCenter}
-              zoom={15}
+              mapContainerStyle={mapContainerStyle}
+              center={center}
+              zoom={14}
               options={{
                 disableDefaultUI: false,
                 zoomControl: true,
-                streetViewControl: false,
-                mapTypeControl: false,
               }}
             >
-              {parada && (
-                <Marker
-                  position={{ lat: center[0], lng: center[1] }}
-                  title={`Parada ${parada.cod_sms}`}
-                />
-              )}
+              <Marker position={center} title={parada ? `Parada ${parada.cod_sms}` : 'Parada'} />
               {arribo && (
-                <Marker
-                  position={{ lat: arribo.latitud, lng: arribo.longitud }}
-                  title={`Coche ${arribo.identificadorCoche}`}
-                />
+                <Marker position={{ lat: arribo.latitud, lng: arribo.longitud }} title={`Coche ${arribo.identificadorCoche}`} />
               )}
             </GoogleMap>
           )}
