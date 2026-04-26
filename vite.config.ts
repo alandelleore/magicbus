@@ -5,6 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    host: true
+    host: true,
+    proxy: {
+      '/api/proxy': {
+        target: 'https://app.cuandollegarosario.com/api/public',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/proxy/, '')
+      }
+    }
   }
 })

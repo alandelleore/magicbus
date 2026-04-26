@@ -1,6 +1,6 @@
 import { SearchResponse, ArribosResponse } from '../types';
 
-const API_BASE = 'https://app.cuandollegarosario.com/api/public';
+const API_BASE = '/api/proxy';
 
 export const buscarParadas = async (query: string, lat?: number, lon?: number): Promise<SearchResponse> => {
   const params = new URLSearchParams({

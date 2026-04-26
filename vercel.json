@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/proxy/search", "destination": "https://app.cuandollegarosario.com/api/public/search" },
+    { "source": "/api/proxy/lineas", "destination": "https://app.cuandollegarosario.com/api/public/lineas" },
+    { "source": "/api/proxy/arribos/:path*", "destination": "https://app.cuandollegarosario.com/api/public/parada/:path*" }
+  ]
+}
