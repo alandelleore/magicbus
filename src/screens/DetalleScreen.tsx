@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   AppBar,
@@ -16,30 +16,76 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
 import { getLineaGobierno } from '../services/apiGobierno';
 import { useLineasGobierno } from '../hooks/useLineasGobierno';
 import type { Arribo, ParadaInfo } from '../types';
 
-const ROSARIO_CENTER = { lat: -32.9441, lng: -60.6346 };
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
 
-function MockMap({ center }: { center: [number, number] }) {
-  const [lat, lng] = center;
-  
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%',
+  borderRadius: '8px',
+};
+
+const defaultCenter = { lat: -32.9441, lng: -60.6346 };
+
+function GoogleMapView({ center, parada, arribo }: { center: [number, number]; parada?: any; arribo?: any | null }) {
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
+
+  const mapCenter = useMemo(() => ({
+    lat: center[0],
+    lng: center[1],
+  }), [center]);
+
+  if (loadError) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography color="error">Error cargando mapa</Typography>
+      </Box>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ height: '100%', width: '100%', borderRadius: 2, overflow: 'hidden', border: '1px solid #ddd' }}>
-      <iframe
-        width="100%"
-        height="100%"
-        frameBorder={0}
-        scrolling="no"
-        marginHeight={0}
-        marginWidth={0}
-        src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.015}%2C${lat - 0.015}%2C${lng + 0.015}%2C${lat + 0.015}&layer=mapnik&marker=${lat}%2C${lng}`}
-        title="Rosario"
-      />
-    </Box>
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
+      center={mapCenter}
+      zoom={15}
+      options={{
+        disableDefaultUI: false,
+        zoomControl: true,
+        streetViewControl: false,
+        mapTypeControl: false,
+      }}
+    >
+      {parada && (
+        <Marker
+          position={{ lat: center[0], lng: center[1] }}
+          label={{ text: '📍', color: 'black', fontSize: '24px' }}
+          title={`Parada ${parada.cod_sms}`}
+        />
+      )}
+      {arribo && (
+        <Marker
+          position={{ lat: arribo.latitud, lng: arribo.longitud }}
+          label={{ text: '🚌', color: 'black', fontSize: '24px' }}
+          title={`Coche ${arribo.identificadorCoche}`}
+        />
+      )}
+    </GoogleMap>
   );
 }
 
@@ -106,46 +152,12 @@ export default function DetalleScreen() {
 
   const center: [number, number] = parada
     ? [parada.punto_y, parada.punto_x]
-    : [-60.6346, -32.9441];
+    : [-32.9441, -60.6346];
 
   const horaArribo = arribo && arribo.tiempoArriboMinutos
     ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
     : null;
 
-const PROJ_ORIGIN_LON = -60.5;
-  const PROJ_ORIGIN_LAT = -33.0;
-  const PROJ_SCALE = 0.9996;
-
-  const gaussToWGS84 = (x: number, y: number): [number, number] => {
-    const xkm = (x - 500000) / 100000;
-    const ykm = (y - 10000000) / 100000;
-    const lon = PROJ_ORIGIN_LON + (xkm / 111319 * PROJ_SCALE);
-    const lat = PROJ_ORIGIN_LAT + (ykm / 111319 * PROJ_SCALE);
-    return [lat, lon];
-  };
-
-  const parseGeoJSON = (geojson: any): [number, number][] => {
-    if (!geojson?.coordinates) return [];
-    const coords: [number, number][] = [];
-    geojson.coordinates.forEach((line: number[][]) => {
-      if (Array.isArray(line)) {
-        line.forEach((point: number[]) => {
-          if (point.length >= 2) coords.push([point[1], point[0]]);
-        });
-      }
-    });
-    return coords;
-  };
-
-  const parseParadasToCoords = (paradas: any[]): [number, number][] => {
-    if (!paradas || paradas.length === 0) return [];
-    return paradas.map((p: any) => gaussToWGS84(p.x, p.y));
-  };
-
-  const idaCoords = lineaDetalle?.geojsonIda ? parseGeoJSON(lineaDetalle.geojsonIda) : [];
-  const vueltaCoords = lineaDetalle?.geojsonVuelta ? parseGeoJSON(lineaDetalle.geojsonVuelta) : [];
-  const paradaCoords = lineaDetalle?.paradas ? parseParadasToCoords(lineaDetalle.paradas) : [];
-  
   const colorLinea = lineaDetalle?.color || '#1976d2';
 
   return (
@@ -188,7 +200,7 @@ const PROJ_ORIGIN_LON = -60.5;
                 <ListItem>
                   <ListItemText
                     primary="Parada"
-                    secondary={(`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`)}
+                    secondary={`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`}
                   />
                 </ListItem>
               )}
@@ -208,8 +220,8 @@ const PROJ_ORIGIN_LON = -60.5;
           </Paper>
         )}
 
-<Box sx={{ flexGrow: 1, minHeight: 300 }}>
-          <MockMap center={center} />
+        <Box sx={{ flexGrow: 1, minHeight: 300, mb: 2 }}>
+          <GoogleMapView center={center} parada={parada} arribo={arribo} />
         </Box>
 
         {loadingRecorrido && (
