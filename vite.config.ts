@@ -11,6 +11,11 @@ export default defineConfig({
         target: 'https://app.cuandollegarosario.com/api/public',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/proxy/, '')
+      },
+      '/api/gobierno': {
+        target: 'https://ws.rosario.gob.ar/ubicaciones/public',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/gobierno/, '')
       }
     }
   }

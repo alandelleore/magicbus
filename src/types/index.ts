@@ -64,8 +64,46 @@ export interface SearchResponse {
 export interface ArribosResponse {
   error: boolean;
   mensaje: string | null;
-  arribos: Arribo[];
+  arrivals: Arribo[];
   parada: ParadaInfo[];
   timestamp: number;
   multiparada: boolean;
+}
+
+export interface RecorridoLinea {
+  id: string;
+  idEmpresa: string;
+  nombreEmpresa: string;
+  nombre: string;
+  nombreCorto: string;
+  codigoEMR: string;
+  color: string;
+  paradas: ParadaRecorridoInfo[];
+  geojsonIda: any;
+  geojsonVuelta: any;
+}
+
+export interface ParadaRecorridoInfo {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  longitud: number;
+  latitud: number;
+  distancia: number;
+}
+
+export interface ParadaGobierno {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  longitud: number;
+  latitud: number;
+  lineas: LineaInfo[];
+}
+
+export interface LineaInfo {
+  id: string;
+  nombre: string;
+  nombreCorto: string;
+  color: string;
 }
