@@ -18,8 +18,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 
-const BUS_ICON = 'https://cdn-icons-png.flaticon.com/512/8216/8216892.png';
-const STOP_ICON = 'https://cdn-icons-png.flaticon.com/512/684/684908.png';
+const BUS_ICON = 'https://ssl.gstatic.com/images/icons/palau/dir21_hc.png';
+const STOP_ICON = 'https://ssl.gstatic.com/images/icons/palau/dir21_gc.png';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
