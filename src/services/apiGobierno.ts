@@ -30,7 +30,6 @@ export interface LineaDetalle {
 }
 
 const API_GOBIERNO = '/api/gobierno';
-const API_COMOLLEGO = '/api/comollego';
 
 export const getLineasGobierno = async (): Promise<LineaGobierno[]> => {
   const response = await fetch(`${API_GOBIERNO}/lineas?nombre=all`);
@@ -38,6 +37,9 @@ export const getLineasGobierno = async (): Promise<LineaGobierno[]> => {
 };
 
 export const getLineaGobierno = async (empresa: string, lineaId: string): Promise<LineaDetalle> => {
-  const response = await fetch(`${API_COMOLLEGO}/linea/${empresa}/${lineaId}`);
+  const response = await fetch(`${API_GOBIERNO}/linea/${empresa}/${lineaId}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
   return response.json();
 };

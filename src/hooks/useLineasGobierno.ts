@@ -27,13 +27,19 @@ export function useLineasGobierno() {
 
   const mapaLineas = useMemo(() => {
     const map = new Map<string, LineaGobierno>();
+    const codigoMap = new Map<string, LineaGobierno[]>();
+    
     lineas.forEach((linea) => {
-      map.set(linea.codigoEMR, linea);
+      const codigo = linea.codigoEMR;
+      const existing = codigoMap.get(codigo) || [];
+      existing.push(linea);
+      codigoMap.set(codigo, existing);
+      
       if (linea.nombreCorto) map.set(linea.nombreCorto, linea);
       if (linea.nombre) map.set(linea.nombre, linea);
-      if (linea.id) map.set(linea.id, linea);
     });
-    return map;
+    
+    return { map, codigoMap };
   }, [lineas]);
 
   const buscarLineaId = useCallback((descripcionLinea: string): string | null => {
@@ -41,13 +47,18 @@ export function useLineasGobierno() {
     
     const limpia = descripcionLinea.trim();
     
-    let linea = mapaLineas.get(limpia);
+    const linea = mapaLineas.map.get(limpia);
     if (linea) return linea.id;
     
     const match = limpia.match(/^(\d+)/);
     if (match) {
-      linea = mapaLineas.get(match[1]);
-      if (linea) return linea.id;
+      const opciones = mapaLineas.codigoMap.get(match[1]);
+      if (opciones && opciones.length > 0) {
+        const normal = opciones.find(o => 
+          o.nombre === o.codigoEMR || o.nombreCorto === o.codigoEMR
+        );
+        return (normal || opciones[0]).id;
+      }
     }
 
     return null;
