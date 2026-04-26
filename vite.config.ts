@@ -15,7 +15,11 @@ export default defineConfig({
       '/api/gobierno': {
         target: 'https://ws.rosario.gob.ar/ubicaciones/public',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/gobierno/, '')
+        rewrite: (path) => path.replace(/^\/api\/gobierno/, ''),
+        configure: (proxyReq) => {
+          proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
+          proxyReq.setHeader('Accept', 'application/json');
+        }
       }
     }
   }
