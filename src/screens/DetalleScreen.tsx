@@ -204,7 +204,7 @@ const PROJ_ORIGIN_LON = -60.5;
           </Paper>
         )}
 
-        <Box sx={{ flexGrow: 1, minHeight: 300 }}>
+<Box sx={{ flexGrow: 1, minHeight: 300 }}>
           <MapContainer center={center} zoom={15} style={{ height: '100%', width: '100%', borderRadius: 12 }}>
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -222,7 +222,7 @@ const PROJ_ORIGIN_LON = -60.5;
             )}
 
             {parada && (
-              <Marker position={[parada.punto_x, parada.punto_y]} icon={defaultIcon}>
+              <Marker position={[parada.punto_y, parada.punto_x]} icon={defaultIcon}>
                 <Popup>Parada {parada.cod_sms}</Popup>
               </Marker>
             )}
