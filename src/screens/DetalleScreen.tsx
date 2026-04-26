@@ -26,7 +26,6 @@ const ROSARIO_CENTER = { lat: -32.9441, lng: -60.6346 };
 
 function MockMap({ center }: { center: [number, number] }) {
   const [lat, lng] = center;
-  const zoom = 14;
   
   return (
     <Box sx={{ height: '100%', width: '100%', borderRadius: 2, overflow: 'hidden', border: '1px solid #ddd' }}>
@@ -37,7 +36,7 @@ function MockMap({ center }: { center: [number, number] }) {
         scrolling="no"
         marginHeight={0}
         marginWidth={0}
-        src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01}%2C${lat - 0.01}%2C${lng + 0.01}%2C${lat + 0.01}&layer=mapnik&marker=${lat}%2C${lng}`}
+        src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.015}%2C${lat - 0.015}%2C${lng + 0.015}%2C${lat + 0.015}&layer=mapnik&marker=${lat}%2C${lng}`}
         title="Rosario"
       />
     </Box>
