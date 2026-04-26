@@ -78,6 +78,10 @@ export default function DetalleScreen() {
     ? [parada.punto_x, parada.punto_y]
     : [-32.9441, -60.6346];
 
+  const horaArribo = arribo && arribo.tiempoArriboMinutos
+    ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
+    : null;
+
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main' }}>
@@ -105,7 +109,7 @@ export default function DetalleScreen() {
               <ListItem>
                 <ListItemText
                   primary="Hora de arribo anunciada"
-                  secondary={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  secondary={horaArribo ? horaArribo.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '-'}
                 />
               </ListItem>
               <ListItem>
