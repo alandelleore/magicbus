@@ -103,9 +103,9 @@ export default function DetalleScreen() {
   const colorLinea = lineaDetalle?.color || '#1976d2';
 
   const mapCenter = useMemo(() => ({
-    lat: center[0],
-    lng: center[1],
-  }), [center]);
+    lat: -32.9441,  // hardcoded Rosario center
+    lng: -60.6346,
+  }), []);
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
