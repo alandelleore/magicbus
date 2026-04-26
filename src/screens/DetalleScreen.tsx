@@ -97,11 +97,11 @@ export default function DetalleScreen() {
   };
 
   const center = useMemo(() => {
-    if (parada) {
-      return { lat: parada.punto_y, lng: parada.punto_x };
+    if (arribo) {
+      return { lat: arribo.latitud, lng: arribo.longitud };
     }
     return { lat: -32.9441, lng: -60.6346 };
-  }, [parada]);
+  }, [arribo]);
 
   const horaArribo = arribo && arribo.tiempoArriboMinutos
     ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
