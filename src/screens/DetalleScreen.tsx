@@ -108,6 +108,18 @@ export default function DetalleScreen() {
     ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
     : null;
 
+const PROJ_ORIGIN_LON = -60.5;
+  const PROJ_ORIGIN_LAT = -33.0;
+  const PROJ_SCALE = 0.9996;
+
+  const gaussToWGS84 = (x: number, y: number): [number, number] => {
+    const xkm = (x - 500000) / 100000;
+    const ykm = (y - 10000000) / 100000;
+    const lon = PROJ_ORIGIN_LON + (xkm / 111319 * PROJ_SCALE);
+    const lat = PROJ_ORIGIN_LAT + (ykm / 111319 * PROJ_SCALE);
+    return [lat, lon];
+  };
+
   const parseGeoJSON = (geojson: any): [number, number][] => {
     if (!geojson?.coordinates) return [];
     const coords: [number, number][] = [];
@@ -121,8 +133,14 @@ export default function DetalleScreen() {
     return coords;
   };
 
+  const parseParadasToCoords = (paradas: any[]): [number, number][] => {
+    if (!paradas || paradas.length === 0) return [];
+    return paradas.map((p: any) => gaussToWGS84(p.x, p.y));
+  };
+
   const idaCoords = lineaDetalle?.geojsonIda ? parseGeoJSON(lineaDetalle.geojsonIda) : [];
   const vueltaCoords = lineaDetalle?.geojsonVuelta ? parseGeoJSON(lineaDetalle.geojsonVuelta) : [];
+  const paradaCoords = lineaDetalle?.paradas ? parseParadasToCoords(lineaDetalle.paradas) : [];
   
   const colorLinea = lineaDetalle?.color || '#1976d2';
 
@@ -198,6 +216,9 @@ export default function DetalleScreen() {
             )}
             {lineaDetalle && vueltaCoords.length > 0 && (
               <Polyline positions={vueltaCoords} color={colorLinea} weight={3} opacity={0.4} dashArray="10, 10" />
+            )}
+            {lineaDetalle && paradaCoords.length > 0 && (
+              <Polyline positions={paradaCoords} color={colorLinea} weight={2} opacity={0.5} dashArray="5, 5" />
             )}
 
             {parada && (
