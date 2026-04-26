@@ -30,9 +30,11 @@ App web para consultar colectivos en Rosario, alternativa a cuandoLlegaRosario.c
 - Proxy configurado para CORS (Vite dev + Vercel)
 - Mapeo de línea: `descripcionLinea` → `id` del gobierno
 
-### 4. Mapas
-- **Leaflet** con OpenStreetMap (actualmente no renderiza correctamente)
-- ~~Google Maps~~ (revertido temporalmente)
+### 4. Mapa (Google Maps) ✅
+- Biblioteca: `@react-google-maps/api`
+- API Key: Configurada en `DetalleScreen.tsx`
+- Coordenadas de parada: `punto_x` (lat), `punto_y` (lng) - formato correcto
+- Muestra marker de la parada
 
 ### 5. Despliegue
 - GitHub: https://github.com/alandelleore/magicbus
@@ -42,12 +44,15 @@ App web para consultar colectivos en Rosario, alternativa a cuandoLlegaRosario.c
 
 ## Lo que NO funciona ❌
 
-### 1. Mapa en DetalleScreen
-- Leaflet no renderiza correctamente (pantalla en blanco)
-- La API del gobierno devuelve coordenadas en formato `x`, `y` (no lat/lon estándar)
-- Las coordenadas requieren conversión Gauss-Kruger → WGS84
+### 1. Marker del colectivo en el mapa
+- Por ahora solo se muestra la parada
+- El colectivo requiere verificar coordenadas
 
-### 2. APK para Android
+### 2. Ruta del recorrido
+- API del gobierno no devuelve geojsonIda/geojsonVuelta
+- Solo devuelve las paradas de la línea
+
+### 3. APK para Android
 - No configurado aún
 - Requiere Expo + EAS Build
 
@@ -67,6 +72,14 @@ App web para consultar colectivos en Rosario, alternativa a cuandoLlegaRosario.c
 - `gobierno`: `codigoEMR` (ej: "115") → `id` interno (ej: "15")
 - El hook `useLineasGobierno` hace este mapeo automáticamente
 
+### Formato de coordenadas
+- **CuandoLlegaRosario** (parada):
+  - `punto_x` = latitud (-32.95729)
+  - `punto_y` = longitud (-60.627777)
+- **CuandoLlegaRosario** (colectivo arrival):
+  - `latitud` = latitud
+  - `longitud` = longitud
+
 ---
 
 ## Estructura del proyecto
@@ -77,17 +90,17 @@ magicbus/
 │   ├── screens/
 │   │   ├── BuscarParadaScreen.tsx    # Búsqueda de paradas
 │   │   ├── CuandoLlegaScreen.tsx      # Lista arrivals
-│   │   └── DetalleScreen.tsx        # Detalle + mapa
+│   │   └── DetalleScreen.tsx         # Detalle + mapa Google
 │   ├── services/
-│   │   ├── api.ts                # CuandoLlegaRosario API
-│   │   └── apiGobierno.ts       # Gobierno Rosario API
+│   │   ├── api.ts                   # CuandoLlegaRosario API
+│   │   └── apiGobierno.ts            # Gobierno Rosario API
 │   ├── hooks/
-│   │   └── useLineasGobierno.ts # Mapeo líneaID
+│   │   └── useLineasGobierno.ts     # Mapeo líneaID
 │   ├── types/
-│   │   └── index.ts            # Tipos TypeScript
+│   │   └── index.ts                # Tipos TypeScript
 │   └── App.tsx
-├── vite.config.ts               # Proxy Vite (dev)
-├── vercel.json                # Proxy Vercel (prod)
+├── vite.config.ts                   # Proxy Vite (dev)
+├── vercel.json                   # Proxy Vercel (prod)
 └── package.json
 ```
 
@@ -95,13 +108,11 @@ magicbus/
 
 ## Próximos pasos (backlog)
 
-1. **Arreglar mapa Leaflet**
-   - Verificar conversión de coordenadas `x`,`y` → lat/lon
-   - Probar con datos reales
+1. **Agregar marker del colectivo**
+   - Verificar coordenadas del arrival
 
-2. **Optimizar rendimiento**
-   - Cache de líneas del gobierno (ya implementado)
-   - Evitar re-renders infinitos
+2. **Mostrar ruta de la línea**
+   - Necesita otra fuente de datos o mapa estático
 
 3. **Configurar APK**
    - Expo + EAS Build para Android
@@ -129,10 +140,17 @@ git push origin main
 
 ## Notas técnicas
 
-### Fallback: Mapa sin funcionar
-Por ahora el mapa en DetalleScreen muestra pantalla en blanco. Los datos del recorrido se cargan correctamente (ver consola `Recorrido cargado:`), pero el renderizado falla.
+### Google Maps API Key
+La API key está hardcodeada en `DetalleScreen.tsx`:
+```typescript
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
+```
 
-### Causa probable
-- API del gobierno no devuelve `geojsonIda`/`geojsonVuelta`
-- Coordenadas `x`,`y` requieren conversión especiales
-- Librería Leaflet puede tener conflictos con el entorno
+### Librerías usadas
+- `@react-google-maps/api` - Google Maps para React
+- `leaflet` + `react-leaflet` - (no usado actualmente por problemas de renderizado)
+
+### Problema resuelto: coordenadas
+Las coordenadas de la parada (`punto_x`, `punto_y`) ya están en formato lat/lng, no requieren conversión Gauss-Kruger. El orden es:
+- `lat = punto_x` ( latitudes negatives)
+- `lng = punto_y` ( longitudes negativas)
