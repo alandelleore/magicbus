@@ -25,67 +25,7 @@ import type { Arribo, ParadaInfo } from '../types';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
-  borderRadius: '8px',
-};
-
 const defaultCenter = { lat: -32.9441, lng: -60.6346 };
-
-function GoogleMapView({ center, parada, arribo }: { center: [number, number]; parada?: any; arribo?: any | null }) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-  });
-
-  const mapCenter = useMemo(() => ({
-    lat: center[0],
-    lng: center[1],
-  }), [center]);
-
-  if (loadError) {
-    return (
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography color="error">Error cargando mapa</Typography>
-      </Box>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  return (
-    <GoogleMap
-      mapContainerStyle={mapContainerStyle}
-      center={mapCenter}
-      zoom={15}
-      options={{
-        disableDefaultUI: false,
-        zoomControl: true,
-        streetViewControl: false,
-        mapTypeControl: false,
-      }}
->
-{parada && (
-        <Marker
-          position={{ lat: center[0], lng: center[1] }}
-          title={`Parada ${parada.cod_sms}`}
-        />
-      )}
-      {arribo && (
-        <Marker
-          position={{ lat: arribo.latitud, lng: arribo.longitud }}
-          title={`Coche ${arribo.identificadorCoche}`}
-        />
-      )}
-    </GoogleMap>
-  );
-}
 
 export default function DetalleScreen() {
   const { id, interno } = useParams<{ id: string; interno: string }>();
@@ -96,6 +36,10 @@ export default function DetalleScreen() {
   const [parada, setParada] = useState<ParadaInfo | null>(null);
   const [lineaDetalle, setLineaDetalle] = useState<any>(null);
   const [loadingRecorrido, setLoadingRecorrido] = useState(false);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -158,6 +102,11 @@ export default function DetalleScreen() {
 
   const colorLinea = lineaDetalle?.color || '#1976d2';
 
+  const mapCenter = useMemo(() => ({
+    lat: center[0],
+    lng: center[1],
+  }), [center]);
+
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main' }}>
@@ -218,8 +167,41 @@ export default function DetalleScreen() {
           </Paper>
         )}
 
-        <Box sx={{ flexGrow: 1, minHeight: 300, mb: 2 }}>
-          <GoogleMapView center={center} parada={parada} arribo={arribo} />
+        <Box sx={{ flexGrow: 1, minHeight: 300, mb: 2, borderRadius: 2, overflow: 'hidden' }}>
+          {loadError ? (
+            <Box sx={{ p: 2, textAlign: 'center', bgcolor: '#f5f5f5', height: '100%' }}>
+              <Typography>Error cargando mapa</Typography>
+            </Box>
+          ) : !isLoaded ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#f5f5f5' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <GoogleMap
+              mapContainerStyle={{ width: '100%', height: '100%', borderRadius: '8px' }}
+              center={mapCenter}
+              zoom={15}
+              options={{
+                disableDefaultUI: false,
+                zoomControl: true,
+                streetViewControl: false,
+                mapTypeControl: false,
+              }}
+            >
+              {parada && (
+                <Marker
+                  position={{ lat: center[0], lng: center[1] }}
+                  title={`Parada ${parada.cod_sms}`}
+                />
+              )}
+              {arribo && (
+                <Marker
+                  position={{ lat: arribo.latitud, lng: arribo.longitud }}
+                  title={`Coche ${arribo.identificadorCoche}`}
+                />
+              )}
+            </GoogleMap>
+          )}
         </Box>
 
         {loadingRecorrido && (
