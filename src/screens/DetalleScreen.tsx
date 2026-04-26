@@ -16,28 +16,51 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
 import { getLineaGobierno } from '../services/apiGobierno';
 import { useLineasGobierno } from '../hooks/useLineasGobierno';
 import type { Arribo, ParadaInfo } from '../types';
 
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+const ROSARIO_CENTER = { lat: -32.9441, lng: -60.6346 };
 
-const busIcon = L.icon({
-  iconUrl: 'https://img.icons8.com/emoji/48/1f69e-bus-emoji.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
+function MockMap({ center }: { center: [number, number] }) {
+  const [lat, lng] = center;
+  return (
+    <Box sx={{ 
+      height: '100%', 
+      width: '100%', 
+      borderRadius: 2,
+      bgcolor: '#e8f5e9',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      p: 2,
+      border: '2px solid #4caf50',
+    }}>
+      <Typography variant="h6" color="success.dark" gutterBottom>
+        🗺️ Mapa de Rosario
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        Centro: {lat.toFixed(4)}, {lng.toFixed(4)}
+      </Typography>
+      <Box sx={{ mt: 2, display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{ fontSize: 32 }}>📍</Box>
+          <Typography variant="caption">Parada</Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{ fontSize: 32 }}>🚌</Box>
+          <Typography variant="caption">Coche</Typography>
+        </Box>
+      </Box>
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
+        (Mock - mapa en desarrollo)
+      </Typography>
+    </Box>
+  );
+}
 
 export default function DetalleScreen() {
   const { id, interno } = useParams<{ id: string; interno: string }>();
@@ -205,33 +228,7 @@ const PROJ_ORIGIN_LON = -60.5;
         )}
 
 <Box sx={{ flexGrow: 1, minHeight: 300 }}>
-          <MapContainer center={center} zoom={15} style={{ height: '100%', width: '100%', borderRadius: 12 }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            
-            {lineaDetalle && idaCoords.length > 0 && (
-              <Polyline positions={idaCoords} color={colorLinea} weight={4} opacity={0.7} />
-            )}
-            {lineaDetalle && vueltaCoords.length > 0 && (
-              <Polyline positions={vueltaCoords} color={colorLinea} weight={3} opacity={0.4} dashArray="10, 10" />
-            )}
-            {lineaDetalle && paradaCoords.length > 0 && (
-              <Polyline positions={paradaCoords} color={colorLinea} weight={2} opacity={0.5} dashArray="5, 5" />
-            )}
-
-            {parada && (
-              <Marker position={[parada.punto_y, parada.punto_x]} icon={defaultIcon}>
-                <Popup>Parada {parada.cod_sms}</Popup>
-              </Marker>
-            )}
-            {arribo && (
-              <Marker position={[arribo.latitud, arribo.longitud]} icon={busIcon}>
-                <Popup>Coche {arribo.identificadorCoche}</Popup>
-              </Marker>
-            )}
-          </MapContainer>
+          <MockMap center={center} />
         </Box>
 
         {loadingRecorrido && (
