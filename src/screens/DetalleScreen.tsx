@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   AppBar,
@@ -16,45 +16,66 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { GoogleMap, useJsApiLoader, Marker, Polyline } from '@react-google-maps/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
 import { getLineaGobierno } from '../services/apiGobierno';
 import { useLineasGobierno } from '../hooks/useLineasGobierno';
-import type { Arribo, ParadaInfo } from '../types';
+import type { Arribo } from '../types';
 
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
 
-const busIcon = L.icon({
-  iconUrl: 'https://img.icons8.com/emoji/48/1f69e-bus-emoji.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
+const mapContainerStyle = {
+  width: '100%',
+  height: '400px',
+  borderRadius: '12px',
+};
+
+const defaultCenter = { lat: -32.9441, lng: -60.6346 };
+
+const PROJ_ORIGIN_LON = -60.5;
+const PROJ_ORIGIN_LAT = -33.0;
+const PROJ_SCALE = 0.9996;
+
+const gaussToWGS84 = (x: number, y: number): { lat: number; lng: number } => {
+  const xkm = (x - 500000) / 100000;
+  const ykm = (y - 10000000) / 100000;
+  const lng = PROJ_ORIGIN_LON + (xkm / 111319 * PROJ_SCALE);
+  const lat = PROJ_ORIGIN_LAT + (ykm / 111319 * PROJ_SCALE);
+  return { lat, lng };
+};
+
+const parseParadasToCoords = (paradas: any[]): { lat: number; lng: number }[] => {
+  if (!paradas || paradas.length === 0) return [];
+  return paradas.map((p: any) => gaussToWGS84(p.x, p.y));
+};
+
+const formatDistancia = (km: number) => {
+  if (km < 1) return `${(km * 1000).toFixed(0)} mts.`;
+  return `${km.toFixed(2)} km.`;
+};
 
 export default function DetalleScreen() {
-  const { id, interno } = useParams<{ id: string; interno: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { buscarLineaId } = useLineasGobierno();
-  
+
+  const [parada, setParada] = useState<any>(null);
   const [arribo, setArribo] = useState<Arribo | null>(null);
-  const [parada, setParada] = useState<ParadaInfo | null>(null);
   const [lineaDetalle, setLineaDetalle] = useState<any>(null);
   const [loadingRecorrido, setLoadingRecorrido] = useState(false);
 
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ['places'],
+  });
+
   useEffect(() => {
+    if (!id) return;
     const fetchData = async () => {
-      if (!id) return;
       try {
         const result = await getParadaInfo(id);
-        const found = result.arribos?.find((a: Arribo) => a.identificadorCoche === interno);
+        const found = result.arribos?.find((a: Arribo) => a.identificadorCoche === id);
         setArribo(found || null);
         setParada(result.parada?.[0] || null);
 
@@ -80,69 +101,53 @@ export default function DetalleScreen() {
       }
     };
     fetchData();
-  }, [id, interno, buscarLineaId]);
+  }, [id, buscarLineaId]);
 
   const handleShare = async () => {
     if (!arribo || !parada) return;
-    const text = `${arribo.descripcionLinea} ${arribo.descripcionCortaBandera} (Int. ${arribo.identificadorCoche}) llega en ${arribo.tiempoArriboMinutos} min. a la parada ${parada.cod_sms} (${parada.calle1Nombre} y ${parada.calle2Nombre})`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Magic Bus', text });
-      } catch (e) {}
-    } else {
+    const text = `Línea ${arribo.descripcionLinea} - Int. ${arribo.identificadorCoche}
+Llega a "${parada.calle1Nombre} Y ${parada.calle2Nombre}"
+Distancia: ${formatDistancia(arribo.distanciaKm)}
+Parada código: ${parada.cod_sms}`;
+    try {
+      await navigator.share({ title: 'Magic Bus', text });
+    } catch (e) {
       await navigator.clipboard.writeText(text);
     }
   };
-
-  const formatDistancia = (km: number) => {
-    if (km < 1) return `${(km * 1000).toFixed(0)} mts.`;
-    return `${km.toFixed(2)} km.`;
-  };
-
-  const center: [number, number] = parada
-    ? [parada.punto_y, parada.punto_x]
-    : [-60.6346, -32.9441];
 
   const horaArribo = arribo && arribo.tiempoArriboMinutos
     ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
     : null;
 
-const PROJ_ORIGIN_LON = -60.5;
-  const PROJ_ORIGIN_LAT = -33.0;
-  const PROJ_SCALE = 0.9996;
+  const center = useMemo(() => {
+    if (parada?.punto_x && parada?.punto_y) {
+      return gaussToWGS84(parada.punto_x, parada.punto_y);
+    }
+    return defaultCenter;
+  }, [parada]);
 
-  const gaussToWGS84 = (x: number, y: number): [number, number] => {
-    const xkm = (x - 500000) / 100000;
-    const ykm = (y - 10000000) / 100000;
-    const lon = PROJ_ORIGIN_LON + (xkm / 111319 * PROJ_SCALE);
-    const lat = PROJ_ORIGIN_LAT + (ykm / 111319 * PROJ_SCALE);
-    return [lat, lon];
-  };
+  const paradaCoords = useMemo(() => {
+    return lineaDetalle?.paradas ? parseParadasToCoords(lineaDetalle.paradas) : [];
+  }, [lineaDetalle]);
 
-  const parseGeoJSON = (geojson: any): [number, number][] => {
-    if (!geojson?.coordinates) return [];
-    const coords: [number, number][] = [];
-    geojson.coordinates.forEach((line: number[][]) => {
-      if (Array.isArray(line)) {
-        line.forEach((point: number[]) => {
-          if (point.length >= 2) coords.push([point[1], point[0]]);
-        });
-      }
-    });
-    return coords;
-  };
-
-  const parseParadasToCoords = (paradas: any[]): [number, number][] => {
-    if (!paradas || paradas.length === 0) return [];
-    return paradas.map((p: any) => gaussToWGS84(p.x, p.y));
-  };
-
-  const idaCoords = lineaDetalle?.geojsonIda ? parseGeoJSON(lineaDetalle.geojsonIda) : [];
-  const vueltaCoords = lineaDetalle?.geojsonVuelta ? parseGeoJSON(lineaDetalle.geojsonVuelta) : [];
-  const paradaCoords = lineaDetalle?.paradas ? parseParadasToCoords(lineaDetalle.paradas) : [];
-  
   const colorLinea = lineaDetalle?.color || '#1976d2';
+
+  if (loadError) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography>Error loading Google Maps</Typography>
+      </Box>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -184,7 +189,7 @@ const PROJ_ORIGIN_LON = -60.5;
                 <ListItem>
                   <ListItemText
                     primary="Parada"
-                    secondary={(`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`)}
+                    secondary={`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`}
                   />
                 </ListItem>
               )}
@@ -204,34 +209,42 @@ const PROJ_ORIGIN_LON = -60.5;
           </Paper>
         )}
 
-        <Box sx={{ flexGrow: 1, minHeight: 300 }}>
-          <MapContainer center={center} zoom={15} style={{ height: '100%', width: '100%', borderRadius: 12 }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            
-            {lineaDetalle && idaCoords.length > 0 && (
-              <Polyline positions={idaCoords} color={colorLinea} weight={4} opacity={0.7} />
-            )}
-            {lineaDetalle && vueltaCoords.length > 0 && (
-              <Polyline positions={vueltaCoords} color={colorLinea} weight={3} opacity={0.4} dashArray="10, 10" />
-            )}
-            {lineaDetalle && paradaCoords.length > 0 && (
-              <Polyline positions={paradaCoords} color={colorLinea} weight={2} opacity={0.5} dashArray="5, 5" />
-            )}
-
+        <Box sx={{ mb: 2 }}>
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={center}
+            zoom={15}
+            options={{
+              disableDefaultUI: false,
+              zoomControl: true,
+              streetViewControl: false,
+            }}
+          >
             {parada && (
-              <Marker position={[parada.punto_x, parada.punto_y]} icon={defaultIcon}>
-                <Popup>Parada {parada.cod_sms}</Popup>
-              </Marker>
+              <Marker
+                position={center}
+                label={`P`}
+                title={`Parada ${parada.cod_sms}`}
+              />
             )}
             {arribo && (
-              <Marker position={[arribo.latitud, arribo.longitud]} icon={busIcon}>
-                <Popup>Coche {arribo.identificadorCoche}</Popup>
-              </Marker>
+              <Marker
+                position={{ lat: arribo.latitud, lng: arribo.longitud }}
+                label={`B`}
+                title={`Coche ${arribo.identificadorCoche}`}
+              />
             )}
-          </MapContainer>
+            {paradaCoords.length > 0 && (
+              <Polyline
+                path={paradaCoords}
+                options={{
+                  strokeColor: colorLinea,
+                  strokeOpacity: 0.7,
+                  strokeWeight: 3,
+                }}
+              />
+            )}
+          </GoogleMap>
         </Box>
 
         {loadingRecorrido && (
