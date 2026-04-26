@@ -70,18 +70,16 @@ function GoogleMapView({ center, parada, arribo }: { center: [number, number]; p
         streetViewControl: false,
         mapTypeControl: false,
       }}
-    >
-      {parada && (
+>
+{parada && (
         <Marker
           position={{ lat: center[0], lng: center[1] }}
-          label={{ text: '📍', color: 'black', fontSize: '24px' }}
           title={`Parada ${parada.cod_sms}`}
         />
       )}
       {arribo && (
         <Marker
           position={{ lat: arribo.latitud, lng: arribo.longitud }}
-          label={{ text: '🚌', color: 'black', fontSize: '24px' }}
           title={`Coche ${arribo.identificadorCoche}`}
         />
       )}
