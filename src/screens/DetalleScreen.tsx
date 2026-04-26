@@ -57,8 +57,9 @@ export default function DetalleScreen() {
         if (found) {
           setLoadingRecorrido(true);
           try {
-            console.log('Cargando recorrido para línea:', found.codigoLinea);
-            const rec = await getRecorridoLinea('1', found.codigoLinea);
+            const lineaGobierno = found.descripcionLinea || found.codigoLinea;
+            console.log('Cargando recorrido para línea:', lineaGobierno);
+            const rec = await getRecorridoLinea('1', lineaGobierno);
             console.log('Recorrido cargado:', rec);
             setRecorrido(rec);
           } catch (e: any) {
