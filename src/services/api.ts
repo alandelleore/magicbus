@@ -5,11 +5,11 @@ const API_GOBIERNO = '/api/gobierno';
 
 export const buscarParadas = async (query: string, lat?: number, lon?: number): Promise<SearchResponse> => {
   const params = new URLSearchParams({
-    query,
-    lat: lat?.toString() ?? 'null',
-    lon: lon?.toString() ?? 'null'
+    query: query || '',
+    lat: lat?.toString() ?? '',
+    lon: lon?.toString() ?? ''
   });
-  
+  console.log('search params:', params.toString());
   const response = await fetch(`${API_BASE}/search?${params}`);
   return response.json();
 };

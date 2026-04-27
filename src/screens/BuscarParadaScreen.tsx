@@ -33,13 +33,18 @@ export default function BuscarParadaScreen() {
   const navigate = useNavigate();
 
   const buscar = async (q: string) => {
-    if (!q.trim()) {
+    const hasQuery = q.trim().length > 0;
+    const hasUbicacion = ubicacion?.lat && ubicacion?.lng;
+    
+    if (!hasQuery && !hasUbicacion) {
       setParadas([]);
       return;
     }
+    
     setLoading(true);
     try {
-      const result = await buscarParadas(q, ubicacion?.lat, ubicacion?.lng);
+      const result = await buscarParadas(hasQuery ? q : '', ubicacion?.lat, ubicacion?.lng);
+      console.log('result:', result);
       setParadas(result.paradas || []);
     } catch (error) {
       console.error('Error buscando paradas:', error);
