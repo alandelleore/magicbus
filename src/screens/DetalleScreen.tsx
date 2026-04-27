@@ -119,9 +119,12 @@ export default function DetalleScreen() {
     return () => clearInterval(interval);
   }, [id, interno, buscarLineaId]);
 
+  const APP_URL = 'https://magicbus91.vercel.app';
+
   const handleShare = async () => {
     if (!arribo || !parada) return;
-    const text = `${arribo.descripcionLinea} ${arribo.descripcionCortaBandera} (Int. ${arribo.identificadorCoche}) llega en ${arribo.tiempoArriboMinutos} min. a la parada ${parada.cod_sms} (${parada.calle1Nombre} y ${parada.calle2Nombre})`;
+    const url = `${APP_URL}/cuando-llega/${id}`;
+    const text = `${arribo.descripcionLinea} ${arribo.descripcionCortaBandera} (Int. ${arribo.identificadorCoche}) llega en ${arribo.tiempoArriboMinutos} min. a la parada ${parada.cod_sms} (${parada.calle1Nombre} y ${parada.calle2Nombre})\n\n${url}`;
 
     if (navigator.share) {
       try {
