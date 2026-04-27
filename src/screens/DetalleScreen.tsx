@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Box,
   AppBar,
@@ -13,6 +13,7 @@ import {
   Button,
   Grid,
   CircularProgress,
+  Skeleton,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ShareIcon from "@mui/icons-material/Share";
@@ -41,6 +42,11 @@ export default function DetalleScreen() {
   const [parada, setParada] = useState<ParadaInfo | null>(null);
   const [lineaDetalle, setLineaDetalle] = useState<any>(null);
   const [loadingRecorrido, setLoadingRecorrido] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const initialLoadDone = useRef(false);
+  const mapRef = useRef<google.maps.Map | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     id: "google-maps-script",
@@ -48,8 +54,20 @@ export default function DetalleScreen() {
   });
 
   useEffect(() => {
+    setArribo(null);
+    setParada(null);
+    setLineaDetalle(null);
+    setLoading(true);
+    initialLoadDone.current = false;
+    setRefreshing(false);
+
     const fetchData = async () => {
       if (!id) return;
+      
+      if (initialLoadDone.current) {
+        setRefreshing(true);
+      }
+      
       try {
         const result = await getParadaInfo(id);
         const found = result.arribos?.find(
@@ -82,9 +100,17 @@ export default function DetalleScreen() {
         }
       } catch (error) {
         console.error("Error:", error);
+      } finally {
+        if (!initialLoadDone.current) {
+          initialLoadDone.current = true;
+        }
+        setLoading(false);
+        setRefreshing(false);
       }
     };
     fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, [id, interno, buscarLineaId]);
 
   const handleShare = async () => {
@@ -100,7 +126,7 @@ export default function DetalleScreen() {
     }
   };
 
-  const formatDistancia = (km: number) => {
+const formatDistancia = (km: number) => {
     if (km < 1) return `${(km * 1000).toFixed(0)} mts.`;
     return `${km.toFixed(2)} km.`;
   };
@@ -112,10 +138,27 @@ export default function DetalleScreen() {
     return { lat: -32.9441, lng: -60.6346 };
   }, [parada]);
 
-  const horaArribo =
-    arribo && arribo.tiempoArriboMinutos
-      ? new Date(Date.now() + arribo.tiempoArriboMinutos * 60000)
-      : null;
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !arribo || !parada) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend(center);
+    bounds.extend({ lat: arribo.latitud, lng: arribo.longitud });
+    mapRef.current.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
+  }, [arribo, mapReady, center]);
+
+  const getHoraArribo = () => {
+    const mins = arribo?.tiempoArriboMinutos ?? null;
+    if (!arribo || mins === null || mins <= 0) {
+      return "Llegando";
+    }
+    const hora = new Date(Date.now() + mins * 60000);
+    return hora.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
 
   const colorLinea = lineaDetalle?.color || "#1976d2";
 
@@ -148,67 +191,78 @@ export default function DetalleScreen() {
         maxWidth="sm"
         sx={{ flexGrow: 1, display: "flex", flexDirection: "column", py: 2 }}
       >
-        {arribo && (
+        {loading ? (
           <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography
-              variant="h5"
-              fontWeight="bold"
-              gutterBottom
-              sx={{ color: colorLinea }}
-            >
-              {arribo.descripcionLinea} {arribo.descripcionCortaBandera}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              (Int. {arribo.identificadorCoche})
-            </Typography>
-
+            <Skeleton variant="text" width="60%" height={40} />
+            <Skeleton variant="text" width="40%" />
             <List dense>
-              <ListItem>
-                <ListItemText
-                  primary="Hora de arribo которая объявляется"
-                  secondary={
-                    horaArribo
-                      ? horaArribo.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        })
-                      : "-"
-                  }
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary="Bandera / recorrido"
-                  secondary={arribo.descripcionBandera}
-                />
-              </ListItem>
-              {parada && (
-                <ListItem>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <ListItem key={i}>
                   <ListItemText
-                    primary="Parada"
-                    secondary={`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`}
+                    primary={<Skeleton variant="text" width="40%" />}
+                    secondary={<Skeleton variant="text" width="70%" />}
                   />
                 </ListItem>
-              )}
-              <ListItem>
-                <ListItemText
-                  primary="Última actualización GPS"
-                  secondary={`hace ${arribo.minutosDesdeUltimaGPS} min`}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary="Distancia"
-                  secondary={`El coche se encuentra a ${formatDistancia(arribo.distanciaKm)}`}
-                />
-              </ListItem>
+              ))}
             </List>
           </Paper>
+        ) : (
+          <>
+{arribo && (
+              <Paper sx={{ p: 2, mb: 2 }}>
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  gutterBottom
+                  sx={{ color: colorLinea }}
+                >
+                  {arribo.descripcionLinea} {arribo.descripcionCortaBandera}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  (Int. {arribo.identificadorCoche})
+                </Typography>
+
+                <List dense>
+                  <ListItem>
+                    <ListItemText
+                      primary="Hora de arribo"
+                      secondary={refreshing ? <Skeleton variant="text" width={60} /> : getHoraArribo()}
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText
+                      primary="Bandera / recorrido"
+                      secondary={refreshing ? <Skeleton variant="text" width={100} /> : arribo.descripcionBandera}
+                    />
+                  </ListItem>
+                  {parada && (
+                    <ListItem>
+                      <ListItemText
+                        primary="Parada"
+                        secondary={refreshing ? <Skeleton variant="text" width={150} /> : `${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`}
+                      />
+                    </ListItem>
+                  )}
+                  <ListItem>
+                    <ListItemText
+                      primary="Última actualización GPS"
+                      secondary={refreshing ? <Skeleton variant="text" width={50} /> : `hace ${arribo.minutosDesdeUltimaGPS} min`}
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText
+                      primary="Distancia"
+                      secondary={refreshing ? <Skeleton variant="text" width={80} /> : `El coche se encuentra a ${formatDistancia(arribo.distanciaKm)}`}
+                    />
+                  </ListItem>
+                </List>
+              </Paper>
+            )}
+          </>
         )}
 
         <Box sx={{ height: 350, mb: 2, borderRadius: 2, overflow: "hidden" }}>
-          {!isLoaded ? (
+          {!isLoaded || loading ? (
             <Box
               sx={{
                 display: "flex",
@@ -224,7 +278,11 @@ export default function DetalleScreen() {
 <GoogleMap
               mapContainerStyle={mapContainerStyle}
               center={center}
-              zoom={arribo ? 16 : 14}
+              zoom={14}
+              onLoad={(map) => {
+                mapRef.current = map;
+                setMapReady(true);
+              }}
               options={{
                 disableDefaultUI: true,
                 zoomControl: false,
