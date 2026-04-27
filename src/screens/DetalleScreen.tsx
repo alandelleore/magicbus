@@ -70,9 +70,14 @@ export default function DetalleScreen() {
       
       try {
         const result = await getParadaInfo(id);
+        console.log('API response:', result);
         const found = result.arribos?.find(
           (a: Arribo) => a.identificadorCoche === interno,
         );
+        console.log('Found arrival:', found);
+        console.log('distanciaKm:', found?.distanciaKm);
+        console.log('tiempoArriboMinutos:', found?.tiempoArriboMinutos);
+        console.log('minutosDesdeUltimaGPS:', found?.minutosDesdeUltimaGPS);
         setArribo(found || null);
         setParada(result.parada?.[0] || null);
 
