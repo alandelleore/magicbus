@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ShareIcon from "@mui/icons-material/Share";
+import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import type { GoogleMapProps } from "@react-google-maps/api";
 
@@ -215,17 +216,21 @@ const formatDistancia = (km: number) => {
           <>
 {arribo && (
               <Paper sx={{ p: 2, mb: 2 }}>
-                <Typography
-                  variant="h5"
-                  fontWeight="bold"
-                  gutterBottom
-                  sx={{ color: colorLinea }}
-                >
-                  {arribo.descripcionLinea} {arribo.descripcionCortaBandera}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  (Int. {arribo.identificadorCoche})
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <DirectionsBusIcon sx={{ color: colorLinea }} />
+                    <Typography
+                      variant="h5"
+                      fontWeight="bold"
+                      sx={{ color: '#000' }}
+                    >
+                      {arribo.descripcionLinea} {arribo.descripcionCortaBandera}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    (Int. {arribo.identificadorCoche})
+                  </Typography>
+                </Box>
 
                 <List dense>
                   <ListItem>
