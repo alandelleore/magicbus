@@ -38,7 +38,7 @@ App web para consultar colectivos en Rosario, alternativa a cuandoLlegaRosario.c
 
 ### 5. Despliegue
 - GitHub: https://github.com/alandelleore/magicbus
-- Vercel: https://magicbus.vercel.app
+- Vercel: https://magicbus91.vercel.app
 
 ---
 
