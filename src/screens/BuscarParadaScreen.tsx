@@ -62,7 +62,7 @@ export default function BuscarParadaScreen() {
             lng: position.coords.longitude,
           });
           setQuery('');
-          buscar('cerca');
+          buscar('');
         },
         (error) => {
           console.error('Error de geolocalización:', error);
@@ -73,7 +73,7 @@ export default function BuscarParadaScreen() {
 
   useEffect(() => {
     if (ubicacion) {
-      buscar('cerca');
+      buscar('');
     }
   }, [ubicacion]);
 
