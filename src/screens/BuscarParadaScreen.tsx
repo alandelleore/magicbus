@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -17,37 +17,44 @@ import {
   Toolbar,
   Chip,
   Fab,
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import MyLocationIcon from '@mui/icons-material/MyLocation';
-import { useNavigate } from 'react-router-dom';
-import { buscarParadas } from '../services/api';
-import type { Parada } from '../types';
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
+import { useNavigate } from "react-router-dom";
+import { buscarParadas } from "../services/api";
+import type { Parada } from "../types";
 
 export default function BuscarParadaScreen() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [paradas, setParadas] = useState<Parada[]>([]);
   const [loading, setLoading] = useState(false);
-  const [ubicacion, setUbicacion] = useState<{ lat: number; lng: number } | null>(null);
+  const [ubicacion, setUbicacion] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const navigate = useNavigate();
 
   const buscar = async (q: string) => {
     const hasQuery = q.trim().length > 0;
     const hasUbicacion = ubicacion?.lat && ubicacion?.lng;
-    
+
     if (!hasQuery && !hasUbicacion) {
       setParadas([]);
       return;
     }
-    
+
     setLoading(true);
     try {
-      const result = await buscarParadas(hasQuery ? q : '', ubicacion?.lat, ubicacion?.lng);
-      console.log('result:', result);
+      const result = await buscarParadas(
+        hasQuery ? q : "",
+        ubicacion?.lat,
+        ubicacion?.lng,
+      );
+      console.log("result:", result);
       setParadas(result.paradas || []);
     } catch (error) {
-      console.error('Error buscando paradas:', error);
+      console.error("Error buscando paradas:", error);
       setParadas([]);
     } finally {
       setLoading(false);
@@ -66,24 +73,27 @@ export default function BuscarParadaScreen() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           });
-          setQuery('');
-          buscar('');
+          setQuery("");
+          buscar("");
         },
         (error) => {
-          console.error('Error de geolocalización:', error);
-        }
+          console.error("Error de geolocalización:", error);
+        },
       );
     }
   };
 
   useEffect(() => {
     if (ubicacion) {
-      buscar('');
+      buscar("");
     }
   }, [ubicacion]);
 
   const parseLineas = (lineasTXT: string) => {
-    return lineasTXT.replace(/<\/?b>/g, '').split(' | ').map((l) => l.trim());
+    return lineasTXT
+      .replace(/<\/?b>/g, "")
+      .split(" | ")
+      .map((l) => l.trim());
   };
 
   const seleccionarParada = (cod_sms: string) => {
@@ -91,28 +101,30 @@ export default function BuscarParadaScreen() {
   };
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main' }}>
+    <Box
+      sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: "background.default" }}
+    >
+      <AppBar position="static" elevation={0} sx={{ bgcolor: "primary.main" }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: "white" }}>
             Buscar parada
           </Typography>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="sm" sx={{ mt: 2 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
+        {/* <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
           Tus consultas más recientes
-        </Typography>
+        </Typography> */}
 
         <Paper sx={{ p: 2, mb: 2 }}>
           <TextField
             fullWidth
-            label="Buscar parada por número de parada o por dirección"
+            label="Ingresar parada o dirección"
             placeholder="Ingresar parada o dirección"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -126,7 +138,7 @@ export default function BuscarParadaScreen() {
         </Paper>
 
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress />
           </Box>
         )}
@@ -135,7 +147,9 @@ export default function BuscarParadaScreen() {
           <List>
             {paradas.map((parada) => (
               <ListItem key={parada.cod_sms} disablePadding>
-                <ListItemButton onClick={() => seleccionarParada(parada.cod_sms)}>
+                <ListItemButton
+                  onClick={() => seleccionarParada(parada.cod_sms)}
+                >
                   <ListItemIcon>
                     <LocationOnIcon color="primary" />
                   </ListItemIcon>
@@ -147,14 +161,16 @@ export default function BuscarParadaScreen() {
                     }
                     secondary={
                       <Box sx={{ mt: 1 }}>
-                        {parseLineas(parada.lineasTXT).slice(0, 4).map((linea, idx) => (
-                          <Chip
-                            key={idx}
-                            label={linea}
-                            size="small"
-                            sx={{ mr: 0.5, mb: 0.5 }}
-                          />
-                        ))}
+                        {parseLineas(parada.lineasTXT)
+                          .slice(0, 4)
+                          .map((linea, idx) => (
+                            <Chip
+                              key={idx}
+                              label={linea}
+                              size="small"
+                              sx={{ mr: 0.5, mb: 0.5 }}
+                            />
+                          ))}
                       </Box>
                     }
                   />
@@ -165,7 +181,10 @@ export default function BuscarParadaScreen() {
         )}
 
         {!loading && paradas.length === 0 && query && (
-          <Typography sx={{ textAlign: 'center', py: 4 }} color="text.secondary">
+          <Typography
+            sx={{ textAlign: "center", py: 4 }}
+            color="text.secondary"
+          >
             No se encontraron paradas
           </Typography>
         )}
@@ -173,7 +192,7 @@ export default function BuscarParadaScreen() {
 
       <Fab
         color="primary"
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+        sx={{ position: "fixed", bottom: 24, right: 24 }}
         onClick={obtenerUbicacion}
       >
         <MyLocationIcon />
