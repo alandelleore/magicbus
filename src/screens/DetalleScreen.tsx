@@ -182,7 +182,7 @@ const formatDistancia = (km: number) => {
           <IconButton
             edge="start"
             color="inherit"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(`/parada/${id}`)}
             sx={{ mr: 2 }}
           >
             <ArrowBackIcon />
