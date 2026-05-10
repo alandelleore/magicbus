@@ -42,26 +42,48 @@ export function useLineasGobierno() {
     return { map, codigoMap };
   }, [lineas]);
 
-  const buscarLineaId = useCallback((descripcionLinea: string): string | null => {
+  const buscarLineaId = useCallback((descripcionLinea: string, descripcionCortaBandera?: string): string | null => {
     if (lineas.length === 0) return null;
     
     const limpia = descripcionLinea.trim();
     
-    const linea = mapaLineas.map.get(limpia);
+    // 1. Intentar coincidencia directa por nombre o nombreCorto
+    let linea = mapaLineas.map.get(limpia);
     if (linea) return linea.id;
     
-    const match = limpia.match(/^(\d+)/);
-    if (match) {
-      const opciones = mapaLineas.codigoMap.get(match[1]);
-      if (opciones && opciones.length > 0) {
-        const normal = opciones.find(o => 
-          o.nombre === o.codigoEMR || o.nombreCorto === o.codigoEMR
+    // 2. Buscar por codigoEMR
+    const opciones = mapaLineas.codigoMap.get(limpia);
+    if (!opciones?.length) return null;
+    
+    // Si solo hay una opción, devolverla
+    if (opciones.length === 1) return opciones[0].id;
+    
+    // 3. Filtrar por bandera corta
+    if (descripcionCortaBandera) {
+      const bandera = descripcionCortaBandera.trim().toLowerCase();
+      
+      // Mapeo de banderas cortas a variantes en API 2
+      const banderaVariants = [bandera];
+      if (bandera === 'roja') banderaVariants.push('rojo');
+      if (bandera === 'negra') banderaVariants.push('negro');
+      
+      const conBandera = opciones.find(o => {
+        const nombreLower = o.nombre.toLowerCase();
+        const nombreCortoLower = o.nombreCorto.toLowerCase();
+        
+        return banderaVariants.some(v => 
+          nombreLower.includes(v) ||
+          nombreCortoLower.includes(v) ||
+          nombreCortoLower.endsWith(` ${v}`) ||
+          nombreLower.endsWith(` ${v}`)
         );
-        return (normal || opciones[0]).id;
-      }
+      });
+      
+      if (conBandera) return conBandera.id;
     }
-
-    return null;
+    
+    // 4. Lógica de respaldo: primera opción
+    return opciones[0].id;
   }, [mapaLineas, lineas.length]);
 
   return { lineas, loading, error, buscarLineaId };

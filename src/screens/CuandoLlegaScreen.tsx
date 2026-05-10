@@ -1,39 +1,28 @@
-import { useState, useEffect } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  AppBar,
-  Toolbar,
-  CircularProgress,
-  Alert,
-  Chip,
-  Fab,
-} from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import WarningIcon from '@mui/icons-material/Warning';
-import SearchIcon from '@mui/icons-material/Search';
+import { useState, useEffect, useMemo } from 'react';
+import { Box, Typography, AppBar, Toolbar, CircularProgress, Fab } from '@mui/material';
+import { IconSearch, IconArrowLeft } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
+import ArriboCard from '../components/ArriboCard';
+import StopHeader from '../components/StopHeader';
 import type { Arribo, ParadaInfo } from '../types';
+import { tokens } from '../theme';
 
 export default function CuandoLlegaScreen() {
   const { id } = useParams<{ id: string }>();
   const [arribos, setArribos] = useState<Arribo[]>([]);
   const [parada, setParada] = useState<ParadaInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [secondsLeft, setSecondsLeft] = useState(30);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!id) return;
+
+    setLoading(true);
+    setSecondsLeft(30);
+
     const fetchData = async () => {
-      if (!id) return;
-      setLoading(true);
       try {
         const result = await getParadaInfo(id);
         setArribos(result.arribos || []);
@@ -44,61 +33,86 @@ export default function CuandoLlegaScreen() {
         setLoading(false);
       }
     };
+
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+
+    const pollTimer = setInterval(fetchData, 30000);
+    const countdownTimer = setInterval(() => {
+      setSecondsLeft((s) => (s <= 1 ? 30 : s - 1));
+    }, 1000);
+
+    return () => {
+      clearInterval(pollTimer);
+      clearInterval(countdownTimer);
+    };
   }, [id]);
 
-  const getIconColor = (minutos: number | null, minutosGPS: number) => {
-    if (minutos === null) return 'error';
-    if (minutosGPS > 10) return 'error';
-    if (minutosGPS > 4) return 'warning';
-    return 'success';
-  };
-
-  const getIcon = (minutos: number | null, minutosGPS: number) => {
-    if (minutos === null) return <WarningIcon color="error" />;
-    if (minutosGPS > 10) return <WarningIcon color="error" />;
-    if (minutosGPS > 4) return <ScheduleIcon color="warning" />;
-    return <CheckCircleIcon color="success" />;
-  };
-
-  const getTiempoTexto = (minutos: number | null) => {
-    if (minutos === null) return 'SIN SERVICIO';
-    if (minutos === 0) return 'Llegando';
-    return `${minutos} min`;
-  };
+  const grupos = useMemo(() => {
+    const map = new Map<string, Arribo[]>();
+    for (const item of arribos) {
+      const key = item.codigoLinea;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(item);
+    }
+    for (const [, items] of map) {
+      items.sort((a, b) => {
+        if (a.tiempoArriboMinutos === null) return 1;
+        if (b.tiempoArriboMinutos === null) return -1;
+        return a.tiempoArriboMinutos - b.tiempoArriboMinutos;
+      });
+    }
+    return Array.from(map.entries()).map(([codigoLinea, items]) => {
+      const first = items[0];
+      return {
+        codigoLinea,
+        descripcionLinea: first.descripcionLinea,
+        descripcionCortaBandera: first.descripcionCortaBandera,
+        arribos: items,
+      };
+    });
+  }, [arribos]);
 
   const seleccionarArribo = (arriboItem: Arribo) => {
     navigate(`/detalle/${id}/${arriboItem.identificadorCoche}`);
   };
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main' }}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>
+    <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: tokens.bg }}>
+      <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
+        <Toolbar sx={{ minHeight: '48px !important', px: 1.5, gap: 1 }}>
+          <Box
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
+            onClick={() => navigate(-1)}
+          >
+            <IconArrowLeft size={14} color="#FFFFFF" />
+          </Box>
+          <Typography
+            sx={{
+              fontFamily: '"DM Sans", sans-serif',
+              fontWeight: 600,
+              fontSize: 18,
+              color: '#FFFFFF',
+              lineHeight: 1.2,
+            }}
+          >
             Cuándo llega
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ mt: 2, pb: 10 }}>
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Ya estamos mostrando todos los arribos.
-        </Alert>
+      {parada && <StopHeader parada={parada} secondsLeft={secondsLeft} />}
 
-        {parada && (
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Typography variant="h5" fontWeight="bold">
-              Parada {parada.cod_sms}
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {parada.calle1Nombre} Y {parada.calle2Nombre} (ochava {parada.ochava})
-            </Typography>
-          </Box>
-        )}
-
+      <Box sx={{ maxWidth: 600, mx: 'auto', px: 0, pb: 10 }}>
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />
@@ -106,44 +120,63 @@ export default function CuandoLlegaScreen() {
         )}
 
         {!loading && (
-          <List>
-            {arribos.map((item, index) => (
-              <ListItem key={`${item.identificadorCoche}-${index}`} disablePadding>
-                <ListItemButton onClick={() => seleccionarArribo(item)}>
-                  <ListItemIcon>
-                    {getIcon(item.tiempoArriboMinutos, item.minutosDesdeUltimaGPS)}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography variant="body1" fontWeight="bold">
-                        {item.descripcionLinea} {item.descripcionCortaBandera}
-                      </Typography>
-                    }
-                  />
-                  <Chip
-                    label={getTiempoTexto(item.tiempoArriboMinutos)}
-                    color={getIconColor(item.tiempoArriboMinutos, item.minutosDesdeUltimaGPS) as any}
-                    variant={item.tiempoArriboMinutos === null ? 'outlined' : 'filled'}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        )}
+          <Box>
+            {grupos.length > 0 && (
+              <Typography
+                sx={{
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontWeight: 600,
+                  fontSize: 10,
+                  letterSpacing: '0.08em',
+                  color: tokens.textMuted,
+                  textTransform: 'uppercase',
+                  px: 2,
+                  pt: 1.25,
+                  pb: 0.5,
+                }}
+              >
+                En camino
+              </Typography>
+            )}
 
-        {!loading && arribos.length === 0 && (
-          <Typography sx={{ textAlign: 'center', py: 4 }} color="text.secondary">
-            No hay colectivos en camino
-          </Typography>
+            <Box sx={{ px: 1.25 }}>
+              {grupos.map((grupo) => (
+                <ArriboCard
+                  key={grupo.codigoLinea}
+                  codigoLinea={grupo.codigoLinea}
+                  descripcionLinea={grupo.descripcionLinea}
+                  descripcionCortaBandera={grupo.descripcionCortaBandera}
+                  arribos={grupo.arribos}
+                  onVerDetalle={seleccionarArribo}
+                />
+              ))}
+            </Box>
+
+            {arribos.length === 0 && (
+              <Typography
+                sx={{ textAlign: 'center', py: 4, color: tokens.textSecondary, fontSize: 14 }}
+              >
+                No hay colectivos en camino
+              </Typography>
+            )}
+          </Box>
         )}
-      </Container>
+      </Box>
 
       <Fab
-        color="primary"
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+          width: 44,
+          height: 44,
+          bgcolor: tokens.brand,
+          boxShadow: `0 3px 10px rgba(240,85,16,0.35)`,
+          '&:hover': { bgcolor: tokens.brandDark },
+        }}
         onClick={() => navigate('/')}
       >
-        <SearchIcon />
+        <IconSearch size={20} color="#FFFFFF" />
       </Fab>
     </Box>
   );

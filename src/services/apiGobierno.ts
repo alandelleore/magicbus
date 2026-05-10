@@ -37,7 +37,7 @@ export const getLineasGobierno = async (): Promise<LineaGobierno[]> => {
 };
 
 export const getLineaGobierno = async (empresa: string, lineaId: string): Promise<LineaDetalle> => {
-  const response = await fetch(`${API_GOBIERNO}/linea/${empresa}/${lineaId}`);
+  const response = await fetch(`${API_GOBIERNO}/linea/${empresa}/${lineaId}?conGeometria=true&usarCoordenadasWGS84=true&conParadas=true`);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }

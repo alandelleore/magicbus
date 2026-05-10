@@ -1,56 +1,61 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   AppBar,
   Toolbar,
   Typography,
-  IconButton,
-  Container,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  Button,
-  Grid,
   CircularProgress,
   Skeleton,
-} from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ShareIcon from "@mui/icons-material/Share";
-import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
-import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
-import type { GoogleMapProps } from "@react-google-maps/api";
+} from '@mui/material';
+import {
+  IconArrowLeft,
+  IconBus,
+  IconBusStop,
+  IconFlag,
+  IconMapPin,
+  IconRoute,
+  IconSatellite,
+  IconShare,
+} from '@tabler/icons-react';
+import { GoogleMap, useJsApiLoader, Polyline, OverlayView } from '@react-google-maps/api';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getParadaInfo } from '../services/api';
+import { getLineaGobierno } from '../services/apiGobierno';
+import { useLineasGobierno } from '../hooks/useLineasGobierno';
+import type { Arribo, ParadaInfo } from '../types';
+import { tokens } from '../theme';
 
-import { useNavigate, useParams } from "react-router-dom";
-import { getParadaInfo } from "../services/api";
-import { getLineaGobierno } from "../services/apiGobierno";
-import { useLineasGobierno } from "../hooks/useLineasGobierno";
-import type { Arribo, ParadaInfo } from "../types";
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk";
+const mapContainerStyle = { width: '100%', height: '350px' };
 
-const mapContainerStyle = {
-  width: "100%",
-  height: "350px",
-};
+function getGpsBadge(minutosGPS: number) {
+  if (minutosGPS <= 5) {
+    return { bg: tokens.greenBg, color: tokens.green, label: `hace ${minutosGPS} min` };
+  }
+  return { bg: tokens.amberBg, color: tokens.amber, label: 'sin señal reciente' };
+}
 
 export default function DetalleScreen() {
   const { id, interno } = useParams<{ id: string; interno: string }>();
   const navigate = useNavigate();
   const { buscarLineaId } = useLineasGobierno();
-  
+
   const [arribo, setArribo] = useState<Arribo | null>(null);
   const [parada, setParada] = useState<ParadaInfo | null>(null);
   const [lineaDetalle, setLineaDetalle] = useState<any>(null);
   const [loadingRecorrido, setLoadingRecorrido] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(30);
+  const [mostrarRecorrido, setMostrarRecorrido] = useState(false);
   const initialLoadDone = useRef(false);
   const mapRef = useRef<google.maps.Map | null>(null);
 
+  const tienePosicionValida = arribo && arribo.latitud !== 0 && arribo.longitud !== 0;
+
   const { isLoaded } = useJsApiLoader({
-    id: "google-maps-script",
+    id: 'google-maps-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
   });
 
@@ -60,63 +65,51 @@ export default function DetalleScreen() {
     setLineaDetalle(null);
     setLoading(true);
     initialLoadDone.current = false;
-    setRefreshing(false);
+    setSecondsLeft(30);
 
     const fetchData = async () => {
       if (!id) return;
-      
-      if (initialLoadDone.current) {
-        setRefreshing(true);
-      }
-      
       try {
         const result = await getParadaInfo(id);
-        console.log('API response:', result);
         const found = result.arribos?.find(
           (a: Arribo) => a.identificadorCoche === interno,
         );
-        console.log('Found arrival:', found);
-        console.log('distanciaKm:', found?.distanciaKm);
-        console.log('tiempoArriboMinutos:', found?.tiempoArriboMinutos);
-        console.log('minutosDesdeUltimaGPS:', found?.minutosDesdeUltimaGPS);
         setArribo(found || null);
         setParada(result.parada?.[0] || null);
 
         if (found) {
           setLoadingRecorrido(true);
           try {
-            const lineaId = buscarLineaId(found.descripcionLinea);
-            console.log(
-              "Buscando lineaId:",
-              found.descripcionLinea,
-              "->",
-              lineaId,
-            );
-
+            const lineaId = buscarLineaId(found.descripcionLinea, found.descripcionCortaBandera);
             if (lineaId) {
-              const rec = await getLineaGobierno("1", lineaId);
-              console.log("Recorrido cargado:", rec);
+              const rec = await getLineaGobierno('1', lineaId);
               setLineaDetalle(rec);
             }
           } catch (e: any) {
-            console.log("No se pudo cargar recorrido:", e?.message || e);
+            console.log('No se pudo cargar recorrido:', e?.message || e);
           } finally {
             setLoadingRecorrido(false);
           }
         }
       } catch (error) {
-        console.error("Error:", error);
+        console.error('Error:', error);
       } finally {
-        if (!initialLoadDone.current) {
-          initialLoadDone.current = true;
-        }
+        if (!initialLoadDone.current) initialLoadDone.current = true;
         setLoading(false);
-        setRefreshing(false);
       }
     };
+
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+
+    const pollTimer = setInterval(fetchData, 30000);
+    const countdownTimer = setInterval(() => {
+      setSecondsLeft((s) => (s <= 1 ? 30 : s - 1));
+    }, 1000);
+
+    return () => {
+      clearInterval(pollTimer);
+      clearInterval(countdownTimer);
+    };
   }, [id, interno, buscarLineaId]);
 
   const APP_URL = 'https://magicbus91.vercel.app';
@@ -127,224 +120,576 @@ export default function DetalleScreen() {
     const text = `${arribo.descripcionLinea} ${arribo.descripcionCortaBandera} (Int. ${arribo.identificadorCoche}) llega en ${arribo.tiempoArriboMinutos} min. a la parada ${parada.cod_sms} (${parada.calle1Nombre} y ${parada.calle2Nombre})\n\n${url}`;
 
     if (navigator.share) {
-      try {
-        await navigator.share({ title: "Magic Bus", text });
-      } catch (e) {}
+      try { await navigator.share({ title: 'Magic Bus', text }); } catch {}
     } else {
       await navigator.clipboard.writeText(text);
     }
   };
 
-const formatDistancia = (km: number) => {
+  const formatDistancia = (km: number) => {
     if (km < 1) return `${(km * 1000).toFixed(0)} mts.`;
     return `${km.toFixed(2)} km.`;
   };
 
   const center = useMemo(() => {
-    if (parada) {
-      return { lat: parada.punto_x, lng: parada.punto_y };
-    }
+    if (parada) return { lat: parada.punto_x, lng: parada.punto_y };
     return { lat: -32.9441, lng: -60.6346 };
   }, [parada]);
 
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !arribo || !parada) return;
-
-    const bounds = new google.maps.LatLngBounds();
-    bounds.extend(center);
-    bounds.extend({ lat: arribo.latitud, lng: arribo.longitud });
-    mapRef.current.fitBounds(bounds, { top: 60, bottom: 60, left: 60, right: 60 });
-  }, [arribo, mapReady, center]);
+  const rutaPath = useMemo(() => {
+    if (lineaDetalle?.geojsonIda?.coordinates) {
+      try {
+        const geojson = lineaDetalle.geojsonIda;
+        const coordinates = geojson.coordinates || [];
+        const path: { lat: number; lng: number }[] = [];
+        for (const lineString of coordinates) {
+          for (const [lng, lat] of lineString) {
+            path.push({ lat, lng });
+          }
+        }
+        return path;
+      } catch {}
+    }
+    if (lineaDetalle?.paradas?.length) {
+      try {
+        return lineaDetalle.paradas
+          .filter((p: any) => p.latitud && p.longitud)
+          .map((p: any) => ({ lat: p.latitud, lng: p.longitud }));
+      } catch {}
+    }
+    return [];
+  }, [lineaDetalle]);
 
   const getHoraArribo = () => {
     const mins = arribo?.tiempoArriboMinutos ?? null;
-    if (!arribo || mins === null || mins <= 0) {
-      return "Llegando";
-    }
+    if (!arribo || mins === null || mins <= 0) return 'Llegando';
     const hora = new Date(Date.now() + mins * 60000);
-    return hora.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    return hora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
-  const colorLinea = lineaDetalle?.color || "#1976d2";
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !parada) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend(center);
+
+    if (tienePosicionValida) {
+      bounds.extend({ lat: arribo!.latitud, lng: arribo!.longitud });
+    }
+
+    if (mostrarRecorrido && rutaPath.length > 0) {
+      rutaPath.forEach((point: { lat: number; lng: number }) => bounds.extend(point));
+    }
+
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const latDiff = Math.abs(ne.lat() - sw.lat());
+    const lngDiff = Math.abs(ne.lng() - sw.lng());
+
+    if (latDiff < 0.005 && lngDiff < 0.005) {
+      mapRef.current.setCenter(center);
+      mapRef.current.setZoom(16);
+    } else {
+      mapRef.current.fitBounds(bounds, { top: 80, bottom: 80, left: 60, right: 60 });
+    }
+  }, [arribo, mapReady, center, tienePosicionValida, mostrarRecorrido, rutaPath, parada]);
 
   return (
-    <Box
-      sx={{
-        flexGrow: 1,
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <AppBar position="static" elevation={0} sx={{ bgcolor: "primary.main" }}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
+    <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: tokens.bg }}>
+      <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
+        <Toolbar sx={{ minHeight: '48px !important', px: 1.5, gap: 1 }}>
+          <Box
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
             onClick={() => navigate(`/cuando-llega/${id}`)}
-            sx={{ mr: 2 }}
           >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: "white" }}>
+            <IconArrowLeft size={14} color="#FFFFFF" />
+          </Box>
+          <Typography
+            sx={{
+              fontFamily: '"DM Sans", sans-serif',
+              fontWeight: 400,
+              fontSize: 13,
+              color: 'rgba(255,255,255,0.85)',
+              lineHeight: 1.2,
+            }}
+          >
+            Volver
+          </Typography>
+        </Toolbar>
+        <Toolbar sx={{ minHeight: '36px !important', px: 2, pt: 0 }}>
+          <Typography
+            sx={{
+              fontFamily: '"DM Sans", sans-serif',
+              fontWeight: 600,
+              fontSize: 18,
+              color: '#FFFFFF',
+              lineHeight: 1.2,
+            }}
+          >
             Detalle
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Container
-        maxWidth="sm"
-        sx={{ flexGrow: 1, display: "flex", flexDirection: "column", py: 2 }}
-      >
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', pb: 2 }}>
         {loading ? (
-          <Paper sx={{ p: 2, mb: 2 }}>
+          <Box sx={{ mx: 1.5, mt: 1.5, bgcolor: tokens.surface, borderRadius: '16px', border: `1px solid ${tokens.border}`, p: 1.75 }}>
             <Skeleton variant="text" width="60%" height={40} />
             <Skeleton variant="text" width="40%" />
-            <List dense>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <ListItem key={i}>
-                  <ListItemText
-                    primary={<Skeleton variant="text" width="40%" />}
-                    secondary={<Skeleton variant="text" width="70%" />}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
+          </Box>
         ) : (
           <>
-{arribo && (
-              <Paper sx={{ p: 2, mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <DirectionsBusIcon sx={{ color: colorLinea }} />
+            {arribo && (
+              <Box
+                sx={{
+                  bgcolor: tokens.surface,
+                  mx: 1.5,
+                  mt: 1.5,
+                  borderRadius: '16px',
+                  border: `1px solid ${tokens.border}`,
+                  p: 1.75,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '12px',
+                      bgcolor: tokens.brandLight,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <IconBus size={20} color={tokens.brand} />
+                  </Box>
+                  <Box sx={{ flexGrow: 1 }}>
                     <Typography
-                      variant="h5"
-                      fontWeight="bold"
-                      sx={{ color: '#000' }}
+                      sx={{
+                        fontFamily: '"DM Mono", monospace',
+                        fontWeight: 700,
+                        fontSize: 20,
+                        color: tokens.textPrimary,
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                      }}
                     >
                       {arribo.descripcionLinea} {arribo.descripcionCortaBandera}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    (Int. {arribo.identificadorCoche})
+                  <Typography
+                    sx={{
+                      fontFamily: '"DM Mono", monospace',
+                      fontWeight: 400,
+                      fontSize: 11,
+                      color: tokens.textMuted,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Int. {arribo.identificadorCoche}
                   </Typography>
                 </Box>
 
-                <List dense>
-                  <ListItem>
-                    <ListItemText
-                      primary="Hora de arribo"
-                      secondary={refreshing ? <Skeleton variant="text" width={60} /> : getHoraArribo()}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Bandera / recorrido"
-                      secondary={refreshing ? <Skeleton variant="text" width={100} /> : arribo.descripcionBandera}
-                    />
-                  </ListItem>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 1,
+                    mb: 1.25,
+                  }}
+                >
+                  <Box sx={{ bgcolor: tokens.surface2, borderRadius: '10px', p: 1 }}>
+                    <Typography
+                      sx={{
+                        fontFamily: '"DM Sans", sans-serif',
+                        fontWeight: 600,
+                        fontSize: 10,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        color: tokens.textMuted,
+                        lineHeight: 1.2,
+                        mb: 0.25,
+                      }}
+                    >
+                      Llega en
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: '"DM Mono", monospace',
+                        fontWeight: 600,
+                        fontSize: 16,
+                        color: tokens.textPrimary,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {getHoraArribo()}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: '"DM Sans", sans-serif',
+                        fontWeight: 400,
+                        fontSize: 10,
+                        color: tokens.textSecondary,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {arribo.tiempoArriboMinutos ? `${arribo.tiempoArriboMinutos} min` : ''}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ bgcolor: tokens.surface2, borderRadius: '10px', p: 1 }}>
+                    <Typography
+                      sx={{
+                        fontFamily: '"DM Sans", sans-serif',
+                        fontWeight: 600,
+                        fontSize: 10,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        color: tokens.textMuted,
+                        lineHeight: 1.2,
+                        mb: 0.25,
+                      }}
+                    >
+                      Distancia
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: '"DM Mono", monospace',
+                        fontWeight: 600,
+                        fontSize: 16,
+                        color: tokens.textPrimary,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {formatDistancia(arribo.distanciaKm)}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: '"DM Sans", sans-serif',
+                        fontWeight: 400,
+                        fontSize: 10,
+                        color: tokens.textSecondary,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      del colectivo
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ borderTop: `0.5px solid ${tokens.border}`, pt: 0.875 }}>
+                  <DetailRow icon={<IconFlag size={14} />} label="Recorrido" value={arribo.descripcionBandera} />
                   {parada && (
-                    <ListItem>
-                      <ListItemText
-                        primary="Parada"
-                        secondary={refreshing ? <Skeleton variant="text" width={150} /> : `${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`}
-                      />
-                    </ListItem>
+                    <DetailRow
+                      icon={<IconMapPin size={14} />}
+                      label="Parada"
+                      value={`${parada.cod_sms} - ${parada.calle1Nombre} Y ${parada.calle2Nombre}`}
+                    />
                   )}
-                  <ListItem>
-                    <ListItemText
-                      primary="Última actualización GPS"
-                      secondary={refreshing ? <Skeleton variant="text" width={50} /> : `hace ${arribo.minutosDesdeUltimaGPS} min`}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Distancia"
-                      secondary={refreshing ? <Skeleton variant="text" width={80} /> : `El coche se encuentra a ${formatDistancia(arribo.distanciaKm)}`}
-                    />
-                  </ListItem>
-                </List>
-              </Paper>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.875, borderTop: `0.5px solid ${tokens.border}` }}>
+                    <Box sx={{ width: 20, flexShrink: 0, pt: '1px', color: tokens.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <IconSatellite size={14} />
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontFamily: '"DM Sans", sans-serif',
+                        fontWeight: 400,
+                        fontSize: 11,
+                        color: tokens.textMuted,
+                        lineHeight: 1.3,
+                        minWidth: 70,
+                      }}
+                    >
+                      GPS
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1, minWidth: 0 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"DM Sans", sans-serif',
+                          fontWeight: 500,
+                          fontSize: 12,
+                          color: tokens.textPrimary,
+                          lineHeight: 1.3,
+                          flexGrow: 1,
+                        }}
+                      >
+                        {getGpsBadge(arribo.minutosDesdeUltimaGPS).label}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontFamily: '"DM Sans", sans-serif',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          px: 0.75,
+                          py: 0.125,
+                          borderRadius: '5px',
+                          bgcolor: getGpsBadge(arribo.minutosDesdeUltimaGPS).bg,
+                          color: getGpsBadge(arribo.minutosDesdeUltimaGPS).color,
+                          lineHeight: 1.3,
+                          flexShrink: 0,
+                        }}
+                      >
+                        hace {arribo.minutosDesdeUltimaGPS} min
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
             )}
           </>
         )}
 
-        <Box sx={{ height: 350, mb: 2, borderRadius: 2, overflow: "hidden" }}>
+        <Box sx={{ height: 350, mx: 1.5, my: 1.5, borderRadius: '14px', border: `1px solid ${tokens.border}`, overflow: 'hidden', position: 'relative' }}>
           {!isLoaded || loading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100%",
-                bgcolor: "#f0f0f0",
-              }}
-            >
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#f0f0f0' }}>
               <CircularProgress />
             </Box>
           ) : (
-<GoogleMap
-              mapContainerStyle={mapContainerStyle}
-              center={center}
-              zoom={14}
-              onLoad={(map) => {
-                mapRef.current = map;
-                setMapReady(true);
-              }}
-              options={{
-                disableDefaultUI: true,
-                zoomControl: false,
-                streetViewControl: false,
-                mapTypeControl: false,
-                fullscreenControl: false,
-                keyboardShortcuts: false,
-              }}
-            >
-              <Marker
-                position={center}
-                label="📍"
-                title={parada ? `Parada ${parada.cod_sms}` : "Parada"}
-              />
-              {arribo && (
-                <Marker
-                  position={{ lat: arribo.latitud, lng: arribo.longitud }}
-                  label="🚌"
-                  title={`Coche ${arribo.identificadorCoche}`}
-                />
+            <>
+              {rutaPath.length > 0 && (
+                <Box
+                  onClick={() => setMostrarRecorrido((v) => !v)}
+                  sx={{
+                    position: 'absolute',
+                    top: 10,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    bgcolor: 'white',
+                    borderRadius: '20px',
+                    px: 1.5,
+                    py: 0.625,
+                    boxShadow: '0 1px 6px rgba(0,0,0,0.15)',
+                    cursor: 'pointer',
+                    border: mostrarRecorrido ? '1.5px solid #F05510' : '1px solid rgba(0,0,0,0.1)',
+                    transition: 'border 0.15s',
+                  }}
+                >
+                  <IconRoute size={13} color={mostrarRecorrido ? '#F05510' : '#6B6760'} />
+                  <Typography sx={{
+                    fontFamily: '"DM Sans", sans-serif',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: mostrarRecorrido ? '#F05510' : '#6B6760',
+                    lineHeight: 1,
+                  }}>
+                    {mostrarRecorrido ? 'Ocultar recorrido' : 'Ver recorrido'}
+                  </Typography>
+                </Box>
               )}
-            </GoogleMap>
+              <GoogleMap
+                mapContainerStyle={mapContainerStyle}
+                center={center}
+                zoom={14}
+                onLoad={(map) => {
+                  mapRef.current = map;
+                  setMapReady(true);
+                }}
+                options={{
+                  disableDefaultUI: true,
+                  zoomControl: false,
+                  streetViewControl: false,
+                  mapTypeControl: false,
+                  fullscreenControl: false,
+                  keyboardShortcuts: false,
+                }}
+              >
+                <OverlayView
+                  position={center}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                  getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
+                >
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    cursor: 'default',
+                  }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: '#1A1917', border: '3px solid white',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <IconBusStop size={16} color="#FFFFFF" />
+                    </div>
+                    <div style={{
+                      marginTop: 4, background: 'white', borderRadius: 6,
+                      padding: '2px 7px', fontSize: 10,
+                      fontFamily: '"DM Sans", sans-serif', fontWeight: 600,
+                      color: '#1A1917',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      Parada {parada?.cod_sms}
+                    </div>
+                  </div>
+                </OverlayView>
+
+                {tienePosicionValida && (
+                  <OverlayView
+                    position={{ lat: arribo!.latitud, lng: arribo!.longitud }}
+                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                    getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      cursor: 'default',
+                    }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        background: '#F05510', border: '3px solid white',
+                        boxShadow: '0 2px 8px rgba(240,85,16,0.4)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <IconBus size={16} color="#FFFFFF" />
+                      </div>
+                      <div style={{
+                        marginTop: 4, background: 'white', borderRadius: 6,
+                        padding: '2px 7px', fontSize: 10,
+                        fontFamily: '"DM Sans", sans-serif', fontWeight: 600,
+                        color: '#F05510',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        Int. {arribo!.identificadorCoche}
+                      </div>
+                    </div>
+                  </OverlayView>
+                )}
+
+                {rutaPath.length > 0 && (
+                  <Polyline
+                    path={rutaPath}
+                    options={{
+                      strokeColor: '#F05510',
+                      strokeOpacity: 0.75,
+                      strokeWeight: 4,
+                      visible: mostrarRecorrido,
+                    }}
+                  />
+                )}
+              </GoogleMap>
+            </>
           )}
         </Box>
 
         {loadingRecorrido && (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
-            <CircularProgress size={24} />
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 1, mx: 1.5 }}>
+            <CircularProgress size={20} />
           </Box>
         )}
 
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={6}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<ShareIcon />}
-              onClick={handleShare}
+        <Box sx={{ display: 'flex', gap: 1, px: 1.5 }}>
+          <Box
+            onClick={handleShare}
+            sx={{
+              flex: 1,
+              height: 42,
+              borderRadius: '10px',
+              border: `1.5px solid ${tokens.borderStrong}`,
+              bgcolor: tokens.surface,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.75,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: tokens.surface2 },
+            }}
+          >
+            <IconShare size={15} color={tokens.textSecondary} />
+            <Typography
+              sx={{
+                fontFamily: '"DM Sans", sans-serif',
+                fontWeight: 500,
+                fontSize: 13,
+                color: tokens.textPrimary,
+                lineHeight: 1.2,
+              }}
             >
               Compartir
-            </Button>
-          </Grid>
-          <Grid item xs={6}>
-            <Button fullWidth variant="contained" onClick={() => navigate("/")}>
+            </Typography>
+          </Box>
+          <Box
+            onClick={() => navigate('/')}
+            sx={{
+              flex: 2,
+              height: 42,
+              borderRadius: '10px',
+              bgcolor: tokens.brand,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.75,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: tokens.brandDark },
+            }}
+          >
+            <IconArrowLeft size={15} color="#FFFFFF" />
+            <Typography
+              sx={{
+                fontFamily: '"DM Sans", sans-serif',
+                fontWeight: 600,
+                fontSize: 13,
+                color: '#FFFFFF',
+                lineHeight: 1.2,
+              }}
+            >
               Volver
-            </Button>
-          </Grid>
-        </Grid>
-      </Container>
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.875, borderTop: `0.5px solid ${tokens.border}` }}>
+      <Box sx={{ width: 20, flexShrink: 0, pt: '1px', color: tokens.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {icon}
+      </Box>
+      <Typography
+        sx={{
+          fontFamily: '"DM Sans", sans-serif',
+          fontWeight: 400,
+          fontSize: 11,
+          color: tokens.textMuted,
+          lineHeight: 1.3,
+          minWidth: 70,
+        }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        sx={{
+          fontFamily: '"DM Sans", sans-serif',
+          fontWeight: 500,
+          fontSize: 12,
+          color: tokens.textPrimary,
+          lineHeight: 1.3,
+          mt: '1px',
+        }}
+      >
+        {value}
+      </Typography>
     </Box>
   );
 }
