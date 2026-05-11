@@ -4,7 +4,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  CircularProgress,
   Skeleton,
 } from '@mui/material';
 import {
@@ -452,9 +451,7 @@ export default function DetalleScreen() {
 
         <Box sx={{ height: 350, mx: 1.5, my: 1.5, borderRadius: '14px', border: `1px solid ${tokens.border}`, overflow: 'hidden', position: 'relative' }}>
           {!isLoaded || loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#f0f0f0' }}>
-              <CircularProgress />
-            </Box>
+            <Skeleton variant="rounded" width="100%" height="100%" sx={{ borderRadius: 0 }} />
           ) : (
             <>
               {rutaPath.length > 0 && (
@@ -592,7 +589,7 @@ export default function DetalleScreen() {
 
         {loadingRecorrido && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 1, mx: 1.5 }}>
-            <CircularProgress size={20} />
+            <Skeleton variant="rounded" width={120} height={20} sx={{ borderRadius: '8px' }} />
           </Box>
         )}
 

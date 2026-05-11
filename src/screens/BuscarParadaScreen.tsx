@@ -2,265 +2,338 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  AppBar,
-  Toolbar,
-  CircularProgress,
+  Skeleton,
   Fab,
-  InputBase,
 } from '@mui/material';
-import { IconSearch, IconMapPin, IconCurrentLocation } from '@tabler/icons-react';
+import { IconMapPin, IconCurrentLocation, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { buscarParadas } from '../services/api';
 import type { Parada } from '../types';
 import { tokens } from '../theme';
-
-const CACHE_KEY = 'magicbus_search';
-
-function loadCache() {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return null;
-}
-
-function saveCache(query: string, paradas: Parada[], searched: boolean) {
-  try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ query, paradas, searched }));
-  } catch {}
-}
+import MagicBusLogo from '../components/MagicBusLogo';
+import SearchBox from '../components/SearchBox';
+import { useFavoritos } from '../hooks/useFavoritos';
+import { useSearchContext } from '../context/SearchContext';
 
 export default function BuscarParadaScreen() {
-  const cached = loadCache();
-  const [query, setQuery] = useState(cached?.query ?? '');
-  const [paradas, setParadas] = useState<Parada[]>(cached?.paradas ?? []);
+  const [inputValue, setInputValue] = useState('');
+  const [queryBuscada, setQueryBuscada] = useState('');
+  const [resultados, setResultados] = useState<Parada[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(cached?.searched ?? false);
-  const [ubicacion, setUbicacion] = useState<{ lat: number; lng: number } | null>(null);
   const navigate = useNavigate();
+  const { favoritos, toggleFavorito, esFavorito } = useFavoritos();
+  const { searchState, setSearchState } = useSearchContext();
 
-  const buscar = async (q: string) => {
-    const hasQuery = q.trim().length > 0;
-    const hasUbicacion = ubicacion?.lat && ubicacion?.lng;
-
-    if (!hasQuery && !hasUbicacion) {
-      setParadas([]);
-      return;
+  useEffect(() => {
+    if (searchState.queryBuscada) {
+      setInputValue(searchState.inputValue);
+      setQueryBuscada(searchState.queryBuscada);
+      setResultados(searchState.resultados);
     }
+  }, []);
 
+  const hasBuscado = queryBuscada.length > 0;
+
+  const handleSearch = async () => {
+    const q = inputValue.trim();
+    if (!q) return;
+    setQueryBuscada(q);
     setLoading(true);
-    setSearched(true);
     try {
-      const result = await buscarParadas(
-        hasQuery ? q : '',
-        ubicacion?.lat,
-        ubicacion?.lng,
-      );
-      const results = result.paradas || [];
-      setParadas(results);
-      saveCache(q, results, true);
+      const data = await buscarParadas(q);
+      const results = data.paradas || [];
+      setResultados(results);
+      setSearchState({ inputValue: q, queryBuscada: q, resultados: results });
     } catch {
-      setParadas([]);
+      setResultados([]);
+      setSearchState({ inputValue: q, queryBuscada: q, resultados: [] });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = () => buscar(query);
-
-  const obtenerUbicacion = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUbicacion({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setQuery('');
-          buscar('');
-        },
-        (error) => {
-          console.error('Error de geolocalización:', error);
-        },
-      );
+  const handleInputChange = (val: string) => {
+    setInputValue(val);
+    if (val === '') {
+      setQueryBuscada('');
+      setResultados([]);
+      setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
     }
   };
 
-  useEffect(() => {
-    if (ubicacion) buscar('');
-  }, [ubicacion]);
-
   const parseLineas = (lineasTXT: string) =>
     lineasTXT.replace(/<\/?b>/g, '').split(' | ').map((l) => l.trim());
+
+  const splitNombre = (nombre: string) => {
+    const parts = nombre.split(' y ');
+    return { calle1Nombre: parts[0] || nombre, calle2Nombre: parts[1] || '' };
+  };
 
   const seleccionarParada = (cod_sms: string) => {
     navigate(`/cuando-llega/${cod_sms}`);
   };
 
+  const obtenerUbicacion = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+        setInputValue('');
+        setLoading(true);
+        try {
+          const data = await buscarParadas('', lat, lng);
+          const results = data.paradas || [];
+          setResultados(results);
+          setQueryBuscada(' ');
+          setSearchState({ inputValue: '', queryBuscada: ' ', resultados: results });
+        } catch {
+          setResultados([]);
+          setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
+        } finally {
+          setLoading(false);
+        }
+      },
+      (error) => {
+        console.error('Error de geolocalización:', error);
+      },
+    );
+  };
+
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: tokens.bg }}>
-      <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
-        <Toolbar sx={{ minHeight: '48px !important', px: 2, flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
-          <Typography
-            sx={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontWeight: 600,
-              fontSize: 18,
-              color: '#FFFFFF',
-              lineHeight: 1.3,
-              mt: 0.5,
-            }}
-          >
-            Buscar parada
-          </Typography>
-          <Typography
-            sx={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontWeight: 400,
-              fontSize: 12,
-              color: 'rgba(255,255,255,0.75)',
-              lineHeight: 1.2,
-              mb: 0.5,
-            }}
-          >
-            Ingresá una parada o dirección
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ minHeight: '100vh', bgcolor: tokens.bg, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ height: 44, bgcolor: tokens.brand }} />
 
-      <Box
-        sx={{
-          bgcolor: tokens.surface,
-          borderRadius: '16px',
-          border: `1px solid ${tokens.border}`,
-          mx: 1.75,
-          mt: 1.75,
-          overflow: 'hidden',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            height: 48,
-            px: 1.75,
-            gap: 1.25,
-          }}
-        >
-          <IconSearch size={18} color={tokens.brand} />
-          <InputBase
-            fullWidth
-            placeholder="Ingresar parada o dirección"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            sx={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontSize: 14,
-              color: tokens.textPrimary,
-              '&::placeholder': { color: tokens.textMuted, opacity: 1 },
-            }}
-          />
-        </Box>
+      {hasBuscado ? (
+        <Box sx={{ flex: 1, px: 1.5, pt: 1.5 }}>
+          <SearchBox value={inputValue} onChange={handleInputChange} onSearch={handleSearch} />
 
-        {paradas.length > 0 && (
-          <Box sx={{ height: '0.5px', bgcolor: tokens.border, mx: 1.75 }} />
-        )}
+          {loading && [0, 1, 2].map(i => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, px: 1.75, py: 1.5, borderBottom: i < 2 ? `0.5px solid ${tokens.border}` : 'none' }}>
+              <Skeleton variant="circular" width={30} height={30} />
+              <Box sx={{ flexGrow: 1 }}>
+                <Skeleton variant="text" width="30%" height={16} />
+                <Skeleton variant="text" width="60%" height={14} sx={{ mt: 0.5 }} />
+                <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75 }}>
+                  <Skeleton variant="rounded" width={40} height={18} sx={{ borderRadius: '6px' }} />
+                  <Skeleton variant="rounded" width={50} height={18} sx={{ borderRadius: '6px' }} />
+                </Box>
+              </Box>
+            </Box>
+          ))}
 
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={24} />
-          </Box>
-        )}
+          {!loading && resultados.length === 0 && (
+            <Typography sx={{ textAlign: 'center', py: 4, color: tokens.textSecondary, fontSize: 14 }}>
+              No se encontraron paradas
+            </Typography>
+          )}
 
-        {!loading &&
-          paradas.map((parada, idx) => (
+          {!loading && resultados.map((parada, idx) => {
+            const isFav = esFavorito(parada.cod_sms);
+            return (
             <Box
               key={parada.cod_sms}
-              onClick={() => seleccionarParada(parada.cod_sms)}
               sx={{
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 1.5,
                 px: 1.75,
                 py: 1.5,
-                borderBottom: idx < paradas.length - 1 ? `0.5px solid ${tokens.border}` : 'none',
-                cursor: 'pointer',
+                borderBottom: idx < resultados.length - 1 ? `0.5px solid ${tokens.border}` : 'none',
                 '&:hover': { bgcolor: tokens.surface2 },
               }}
             >
               <Box
-                sx={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '50%',
-                  bgcolor: tokens.brandLight,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  mt: 0.125,
-                }}
+                onClick={() => seleccionarParada(parada.cod_sms)}
+                sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
               >
-                <IconMapPin size={14} color={tokens.brand} />
-              </Box>
-
-              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                <Typography
+                <Box
                   sx={{
-                    fontFamily: '"DM Mono", monospace',
-                    fontWeight: 600,
-                    fontSize: 13,
-                    color: tokens.textPrimary,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {parada.cod_sms}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontWeight: 400,
-                    fontSize: 12,
-                    color: tokens.textSecondary,
+                    width: 30,
+                    height: 30,
+                    borderRadius: '50%',
+                    bgcolor: tokens.brandLight,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                     mt: 0.125,
-                    lineHeight: 1.3,
                   }}
                 >
-                  {parada.nombre}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.75 }}>
-                  {parseLineas(parada.lineasTXT).slice(0, 4).map((linea, li) => (
-                    <Typography
-                      key={li}
-                      sx={{
-                        fontFamily: '"DM Mono", monospace',
-                        fontWeight: 500,
-                        fontSize: 10,
-                        color: tokens.textSecondary,
-                        bgcolor: tokens.surface2,
-                        borderRadius: '6px',
-                        px: 0.75,
-                        py: 0.25,
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {linea}
-                    </Typography>
-                  ))}
+                  <IconMapPin size={14} color={tokens.brand} />
+                </Box>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography
+                    sx={{
+                      fontFamily: '"DM Mono", monospace',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      color: tokens.textPrimary,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {parada.cod_sms}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontWeight: 400,
+                      fontSize: 12,
+                      color: tokens.textSecondary,
+                      mt: 0.125,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {parada.nombre}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.75 }}>
+                    {parseLineas(parada.lineasTXT).slice(0, 4).map((linea, li) => (
+                      <Typography
+                        key={li}
+                        sx={{
+                          fontFamily: '"DM Mono", monospace',
+                          fontWeight: 500,
+                          fontSize: 10,
+                          color: tokens.textSecondary,
+                          bgcolor: tokens.surface2,
+                          borderRadius: '6px',
+                          px: 0.75,
+                          py: 0.25,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {linea}
+                      </Typography>
+                    ))}
+                  </Box>
                 </Box>
               </Box>
+              <Box
+                onClick={() => toggleFavorito({ cod_sms: parada.cod_sms, ...splitNombre(parada.nombre) })}
+                sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, mt: 0.25, cursor: 'pointer', px: 0.5 }}
+              >
+                {isFav ? (
+                  <IconStarFilled size={16} color="#F05510" />
+                ) : (
+                  <IconStar size={16} color="#9B9790" />
+                )}
+              </Box>
             </Box>
-          ))}
-
-        {!loading && paradas.length === 0 && searched && (
+            );
+          })}
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            paddingTop: '15%',
+            px: 2,
+          }}
+        >
+          <MagicBusLogo variant="light" />
+          <Box sx={{ mt: 3, width: '100%', maxWidth: 340 }}>
+            <SearchBox value={inputValue} onChange={handleInputChange} onSearch={handleSearch} />
+          </Box>
           <Typography
-            sx={{ textAlign: 'center', py: 4, color: tokens.textSecondary, fontSize: 14 }}
+            sx={{
+              mt: 1.5,
+              fontSize: 11,
+              color: tokens.textMuted,
+              textAlign: 'center',
+              lineHeight: 1.5,
+            }}
           >
-            No se encontraron paradas
+            Buscá por número de parada<br />o nombre de calle
           </Typography>
-        )}
-      </Box>
+
+          {favoritos.length > 0 && (
+            <Box sx={{ width: '100%', maxWidth: 340, mt: 3 }}>
+              <Typography
+                sx={{
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  color: tokens.textSecondary,
+                  mb: 1,
+                }}
+              >
+                Paradas favoritas
+              </Typography>
+              {favoritos.map(f => (
+                <Box
+                  key={f.cod_sms}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 1.5,
+                    px: 1.75,
+                    py: 1.5,
+                    bgcolor: tokens.surface,
+                    borderRadius: '12px',
+                    border: `1px solid ${tokens.border}`,
+                    mb: 0.75,
+                  }}
+                >
+                  <Box
+                    onClick={() => seleccionarParada(f.cod_sms)}
+                    sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
+                  >
+                    <Box
+                      sx={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: '50%',
+                        bgcolor: tokens.brandLight,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        mt: 0.125,
+                      }}
+                    >
+                      <IconMapPin size={14} color={tokens.brand} />
+                    </Box>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"DM Mono", monospace',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          color: tokens.textPrimary,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {f.cod_sms}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontFamily: '"DM Sans", sans-serif',
+                          fontWeight: 400,
+                          fontSize: 12,
+                          color: tokens.textSecondary,
+                          mt: 0.125,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {f.calle1Nombre}{f.calle2Nombre ? ` y ${f.calle2Nombre}` : ''}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box
+                    onClick={() => toggleFavorito({ cod_sms: f.cod_sms, calle1Nombre: f.calle1Nombre, calle2Nombre: f.calle2Nombre })}
+                    sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, mt: 0.25, cursor: 'pointer', px: 0.5 }}
+                  >
+                    <IconStarFilled size={16} color="#F05510" />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      )}
 
       <Fab
         sx={{

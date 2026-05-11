@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, AppBar, Toolbar, CircularProgress, Fab } from '@mui/material';
+import { Box, Typography, AppBar, Toolbar, Skeleton, Fab } from '@mui/material';
 import { IconSearch, IconArrowLeft } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
@@ -113,11 +113,24 @@ export default function CuandoLlegaScreen() {
       {parada && <StopHeader parada={parada} secondsLeft={secondsLeft} />}
 
       <Box sx={{ maxWidth: 600, mx: 'auto', px: 0, pb: 10 }}>
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
+        {loading && [0, 1, 2].map(i => (
+          <Box key={i} sx={{ mx: 1.5, mt: 1.5, bgcolor: tokens.surface, borderRadius: '16px', border: `1px solid ${tokens.border}`, borderLeft: `3px solid ${tokens.brand}`, p: 1.75 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: '10px' }} />
+              <Box sx={{ flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Skeleton variant="text" width={40} height={18} />
+                  <Skeleton variant="rounded" width={50} height={16} sx={{ borderRadius: '5px' }} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                  <Skeleton variant="text" width={80} height={14} />
+                </Box>
+              </Box>
+              <Skeleton variant="rounded" width={56} height={22} sx={{ borderRadius: '8px' }} />
+              <Skeleton variant="circular" width={22} height={22} />
+            </Box>
           </Box>
-        )}
+        ))}
 
         {!loading && (
           <Box>
