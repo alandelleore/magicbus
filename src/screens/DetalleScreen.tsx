@@ -24,7 +24,7 @@ import { useLineasGobierno } from '../hooks/useLineasGobierno';
 import type { Arribo, ParadaInfo } from '../types';
 import { tokens } from '../theme';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
 
 const mapContainerStyle = { width: '100%', height: '350px' };
 
