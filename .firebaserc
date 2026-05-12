@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "magicbus-8cc40"
+  },
+  "targets": {
+    "magicbus-8cc40": {
+      "hosting": {
+        "magicbus-apk": [
+          "magicbus-apk"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

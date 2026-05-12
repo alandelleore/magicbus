@@ -1,0 +1,48 @@
+name: Build & Deploy APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/deploy-apk.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: ./mobile
+        run: npm ci
+
+      - name: EAS Build
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: cd mobile && eas build --platform android --profile preview --non-interactive --wait
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: magicbus-apk
+          path: mobile/*.apk
+          retention-days: 30
+
+      - name: Copy APK to apk-dist
+        run: |
+          cp mobile/*.apk apk-dist/magicbus.apk
+
+      - name: Deploy APK to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          npm install -g firebase-tools
+          cd apk-dist
+          firebase deploy --only hosting:magicbus-apk --token "$FIREBASE_TOKEN" --project magicbus-8cc40

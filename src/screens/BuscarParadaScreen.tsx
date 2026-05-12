@@ -4,8 +4,10 @@ import {
   Typography,
   Skeleton,
   Fab,
+  AppBar,
+  Toolbar,
 } from '@mui/material';
-import { IconMapPin, IconCurrentLocation, IconStar, IconStarFilled } from '@tabler/icons-react';
+import { IconArrowLeft, IconMapPin, IconCurrentLocation, IconStar, IconStarFilled } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { buscarParadas } from '../services/api';
 import type { Parada } from '../types';
@@ -14,6 +16,7 @@ import MagicBusLogo from '../components/MagicBusLogo';
 import SearchBox from '../components/SearchBox';
 import { useFavoritos } from '../hooks/useFavoritos';
 import { useSearchContext } from '../context/SearchContext';
+import DownloadCTA from '../components/DownloadCTA';
 
 export default function BuscarParadaScreen() {
   const [inputValue, setInputValue] = useState('');
@@ -75,16 +78,18 @@ export default function BuscarParadaScreen() {
 
   const obtenerUbicacion = () => {
     if (!navigator.geolocation) return;
+    setLoading(true);
+    setQueryBuscada(' ');
+    setResultados([]);
+    setInputValue('');
+    setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude: lat, longitude: lng } = position.coords;
-        setInputValue('');
-        setLoading(true);
         try {
           const data = await buscarParadas('', lat, lng);
           const results = data.paradas || [];
           setResultados(results);
-          setQueryBuscada(' ');
           setSearchState({ inputValue: '', queryBuscada: ' ', resultados: results });
         } catch {
           setResultados([]);
@@ -93,15 +98,50 @@ export default function BuscarParadaScreen() {
           setLoading(false);
         }
       },
-      (error) => {
-        console.error('Error de geolocalización:', error);
+      () => {
+        setLoading(false);
+        setQueryBuscada('');
+        setResultados([]);
+        setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
       },
     );
   };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: tokens.bg, display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ height: 44, bgcolor: tokens.brand }} />
+      <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
+        <Toolbar sx={{ minHeight: '48px !important', px: 1.5, gap: 1 }}>
+          {hasBuscado && (
+            <Box
+              onClick={() => handleInputChange('')}
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                bgcolor: 'rgba(255,255,255,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                cursor: 'pointer',
+              }}
+            >
+              <IconArrowLeft size={14} color="#FFFFFF" />
+            </Box>
+          )}
+          <Typography
+            sx={{
+              fontFamily: '"DM Sans", sans-serif',
+              fontWeight: 600,
+              fontSize: 18,
+              color: '#FFFFFF',
+              lineHeight: 1.2,
+            }}
+          >
+            {hasBuscado ? 'Búsqueda' : 'MagicBus'}
+          </Typography>
+        </Toolbar>
+      </AppBar>
 
       {hasBuscado ? (
         <Box sx={{ flex: 1, px: 1.5, pt: 1.5 }}>
@@ -334,6 +374,8 @@ export default function BuscarParadaScreen() {
           )}
         </Box>
       )}
+
+      <DownloadCTA />
 
       <Fab
         sx={{

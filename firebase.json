@@ -1,0 +1,10 @@
+{
+  "hosting": [
+    {
+      "target": "magicbus-apk",
+      "public": "apk-dist",
+      "ignore": ["firebase.json", "**/.*"],
+      "rewrites": []
+    }
+  ]
+}

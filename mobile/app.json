@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "MagicBus",
+    "slug": "magicbus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "../src/assets/magicbus-logo.svg",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F05510",
+      "resizeMode": "contain"
+    },
+    "ios": { "supportsTablet": false },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F05510"
+      },
+      "package": "com.magicbus.app",
+      "permissions": []
+    },
+    "platforms": ["android"],
+    "plugins": ["expo-splash-screen", "expo-status-bar"]
+  }
+}

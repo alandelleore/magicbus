@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, Collapse, Typography, Box } from '@mui/material';
+import { Card, Collapse, Typography, Box } from '@mui/material';
 import {
   IconBus,
   IconBusStop,
