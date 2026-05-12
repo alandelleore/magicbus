@@ -4,7 +4,7 @@ import { IconDownload, IconX } from '@tabler/icons-react';
 import { tokens } from '../theme';
 
 const CTA_DISMISSED_KEY = 'magicbus_cta_dismissed';
-const APK_URL = 'https://magicbus-apk.web.app/magicbus.apk';
+const APK_URL = 'https://github.com/alandelleore/magicbus/releases/download/v1.0.0/magicbus.apk';
 
 function isMobile(): boolean {
   if (typeof navigator === 'undefined') return false;
