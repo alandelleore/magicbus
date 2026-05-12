@@ -4,13 +4,14 @@
     "slug": "magicbus",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "../src/assets/magicbus-logo.svg",
     "userInterfaceStyle": "light",
-    "splash": {
-      "backgroundColor": "#F05510",
-      "resizeMode": "contain"
+"splash": {
+    "backgroundColor": "#F05510",
+    "resizeMode": "cover"
+  },
+    "ios": {
+      "supportsTablet": false
     },
-    "ios": { "supportsTablet": false },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#F05510"
@@ -18,7 +19,14 @@
       "package": "com.magicbus.app",
       "permissions": []
     },
-    "platforms": ["android"],
-    "plugins": ["expo-splash-screen", "expo-status-bar"]
+    "platforms": [
+      "android"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4d096c25-f6af-4842-ae7f-395f19a388ff"
+      }
+    },
+    "owner": "alandelleore"
   }
 }
