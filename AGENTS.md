@@ -227,6 +227,35 @@ Header de parada en CuandoLlegaScreen:
 - **Cache de búsqueda**: `sessionStorage` con clave `magicbus_search` guarda query + resultados + flag searched
 - **Sin boxShadow**: solo borders para elevar elementos
 
+## Assets (favicon / PWA / splash)
+
+| Archivo | Ubicación | Uso |
+|---|---|---|
+| `favicon.ico` | `public/` | Favicon clásico (browsers) |
+| `apple-touch-icon.png` | `public/` | iOS al agregar a pantalla inicio |
+| `android-chrome-192.png` | `public/` | PWA manifest (192×192) |
+| `android-chrome-512.png` | `public/` | PWA manifest (512×512) |
+| `manifest.json` | `public/` | PWA manifest (standalone, theme_color `#F05510`) |
+| `app-icon-1024.png` | `src/assets/` | Master 1024×1024 (origen de `mobile/assets/icon.png`) |
+| `splash-2732x2732.png` | `src/assets/` | Splash universal (origen de `mobile/assets/splash.png`) |
+| `splash-{828,1170,1284}x*` | `src/assets/` | Splash iOS manual (referencia, no usado) |
+| `splash-{1080,2160}x*` | `src/assets/` | Splash Android manual (referencia, no usado) |
+| `magicbus-logo.svg` | `public/` | Logo SVG, conservado |
+
+### App nativa (Expo + EAS Build)
+
+La app nativa vive en `mobile/`. Es un WebView que carga `https://magicbus91.vercel.app`.
+
+- `mobile/assets/icon.png` — icono de la app (copiado de `src/assets/app-icon-1024.png`)
+- `mobile/assets/splash.png` — splash screen (copiado de `src/assets/splash-2732x2732.png`)
+- Expo SDK 52, Android only, EAS Build con perfil `preview` (APK sin credenciales)
+
+**Para hacer un build nuevo:**
+```bash
+cd mobile
+npm run build    # eas build --platform android --profile preview
+```
+
 ## Comandos
 
 ```bash
