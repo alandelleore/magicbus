@@ -4,13 +4,11 @@ import { IconDownload, IconX } from '@tabler/icons-react';
 import { tokens } from '../theme';
 
 const CTA_DISMISSED_KEY = 'magicbus_cta_dismissed';
-const APK_URL = 'https://github.com/alandelleore/magicbus/releases/download/v1.0.0/magicbus.apk';
+const APK_URL = 'https://expo.dev/artifacts/eas/f6sJ4VPHaMcTYAC4JkKpDy.apk';
 
-function isMobile(): boolean {
+function isAndroid(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-    navigator.userAgent,
-  );
+  return /android/i.test(navigator.userAgent);
 }
 
 export default function DownloadCTA() {
@@ -19,7 +17,7 @@ export default function DownloadCTA() {
     return localStorage.getItem(CTA_DISMISSED_KEY) === 'true';
   });
 
-  if (dismissed || !isMobile()) return null;
+  if (dismissed || !isAndroid()) return null;
 
   const handleDismiss = () => {
     localStorage.setItem(CTA_DISMISSED_KEY, 'true');
@@ -84,10 +82,7 @@ export default function DownloadCTA() {
         </Typography>
       </Box>
       <Box
-        component="a"
-        href={APK_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+        onClick={() => { window.location.href = APK_URL; }}
         sx={{
           bgcolor: tokens.brand,
           color: '#FFFFFF',
@@ -97,9 +92,9 @@ export default function DownloadCTA() {
           px: 1.5,
           py: 0.75,
           borderRadius: '8px',
-          textDecoration: 'none',
           flexShrink: 0,
           lineHeight: 1.2,
+          cursor: 'pointer',
           '&:hover': { bgcolor: tokens.brandDark },
         }}
       >
