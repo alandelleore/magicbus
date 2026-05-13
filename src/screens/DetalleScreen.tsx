@@ -453,7 +453,8 @@ export default function DetalleScreen() {
           {!isLoaded || loading ? (
             <Skeleton variant="rounded" width="100%" height="100%" sx={{ borderRadius: 0 }} />
           ) : (
-            <>
+              <>
+              <style>{`@keyframes busBounce{0%,100%{transform:translateY(0)}20%{transform:translateY(-8px)}40%{transform:translateY(-4px)}60%{transform:translateY(-2px)}80%{transform:translateY(-1px)}}`}</style>
               {rutaPath.length > 0 && (
                 <Box
                   onClick={() => setMostrarRecorrido((v) => !v)}
@@ -510,27 +511,31 @@ export default function DetalleScreen() {
                   mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
                   getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
                 >
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    cursor: 'default',
-                  }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      background: '#1A1917', border: '3px solid white',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <IconBusStop size={16} color="#FFFFFF" />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}>
+                    <div style={{ position: 'relative', width: 44, height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: '50%',
+                        background: '#E53935', border: '3px solid white',
+                        boxShadow: '0 2px 12px rgba(229,57,53,0.35)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <IconBusStop size={20} color="#FFFFFF" />
+                      </div>
+                      <div style={{
+                        width: 0, height: 0,
+                        marginTop: -5,
+                        borderLeft: '9px solid transparent',
+                        borderRight: '9px solid transparent',
+                        borderTop: '13px solid #E53935',
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                      }} />
                     </div>
                     <div style={{
-                      marginTop: 4, background: 'white', borderRadius: 6,
-                      padding: '2px 7px', fontSize: 10,
+                      marginTop: 2, background: 'white', borderRadius: 6,
+                      padding: '2px 8px', fontSize: 10,
                       fontFamily: '"DM Sans", sans-serif', fontWeight: 600,
-                      color: '#1A1917',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-                      whiteSpace: 'nowrap',
+                      color: '#E53935',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)', whiteSpace: 'nowrap',
                     }}>
                       Parada {parada?.cod_sms}
                     </div>
@@ -544,26 +549,23 @@ export default function DetalleScreen() {
                     getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
                   >
                     <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      cursor: 'default',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      cursor: 'default', animation: 'busBounce 2s ease-in-out infinite',
                     }}>
                       <div style={{
-                        width: 36, height: 36, borderRadius: '50%',
+                        width: 48, height: 48, borderRadius: '14px',
                         background: '#F05510', border: '3px solid white',
-                        boxShadow: '0 2px 8px rgba(240,85,16,0.4)',
+                        boxShadow: '0 3px 14px rgba(240,85,16,0.45)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <IconBus size={16} color="#FFFFFF" />
+                        <IconBus size={22} color="#FFFFFF" />
                       </div>
                       <div style={{
                         marginTop: 4, background: 'white', borderRadius: 6,
-                        padding: '2px 7px', fontSize: 10,
+                        padding: '2px 8px', fontSize: 10,
                         fontFamily: '"DM Sans", sans-serif', fontWeight: 600,
                         color: '#F05510',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-                        whiteSpace: 'nowrap',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)', whiteSpace: 'nowrap',
                       }}>
                         Int. {arribo!.identificadorCoche}
                       </div>
