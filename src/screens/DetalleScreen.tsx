@@ -9,14 +9,15 @@ import {
 import {
   IconArrowLeft,
   IconBus,
-  IconBusStop,
   IconFlag,
   IconMapPin,
   IconRoute,
   IconSatellite,
   IconShare,
 } from '@tabler/icons-react';
-import { GoogleMap, useJsApiLoader, Polyline, OverlayView } from '@react-google-maps/api';
+import busIcon from '../assets/icons/bus.png';
+import trolleyBusIcon from '../assets/icons/trolley-bus.png';
+import { GoogleMap, useJsApiLoader, Marker, Polyline, OverlayView } from '@react-google-maps/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getParadaInfo } from '../services/api';
 import { getLineaGobierno } from '../services/apiGobierno';
@@ -27,6 +28,17 @@ import { tokens } from '../theme';
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCP4Zo1sJq5nfWsnWNUa9j6aI5lSMWArBk';
 
 const mapContainerStyle = { width: '100%', height: '350px' };
+
+const cabifyStyles: google.maps.MapTypeStyle[] = [
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', stylers: [{ visibility: 'simplified' }] },
+  { featureType: 'transit.station', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative', stylers: [{ visibility: 'off' }] },
+  { featureType: 'landscape.man_made', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', stylers: [{ color: '#c9e2e6' }] },
+  { featureType: 'road', stylers: [{ visibility: 'on' }] },
+];
 
 function getGpsBadge(minutosGPS: number) {
   if (minutosGPS <= 5) {
@@ -176,10 +188,6 @@ export default function DetalleScreen() {
       bounds.extend({ lat: arribo!.latitud, lng: arribo!.longitud });
     }
 
-    if (mostrarRecorrido && rutaPath.length > 0) {
-      rutaPath.forEach((point: { lat: number; lng: number }) => bounds.extend(point));
-    }
-
     const ne = bounds.getNorthEast();
     const sw = bounds.getSouthWest();
     const latDiff = Math.abs(ne.lat() - sw.lat());
@@ -191,7 +199,7 @@ export default function DetalleScreen() {
     } else {
       mapRef.current.fitBounds(bounds, { top: 80, bottom: 80, left: 60, right: 60 });
     }
-  }, [arribo, mapReady, center, tienePosicionValida, mostrarRecorrido, rutaPath, parada]);
+  }, [arribo, mapReady, center, tienePosicionValida, parada]);
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: tokens.bg }}>
@@ -504,70 +512,34 @@ export default function DetalleScreen() {
                   mapTypeControl: false,
                   fullscreenControl: false,
                   keyboardShortcuts: false,
+                  styles: cabifyStyles,
                 }}
               >
-                <OverlayView
-                  position={center}
-                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                  getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}>
-                    <div style={{ position: 'relative', width: 44, height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{
-                        width: 44, height: 44, borderRadius: '50%',
-                        background: '#E53935', border: '3px solid white',
-                        boxShadow: '0 2px 12px rgba(229,57,53,0.35)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <IconBusStop size={20} color="#FFFFFF" />
-                      </div>
-                      <div style={{
-                        width: 0, height: 0,
-                        marginTop: -5,
-                        borderLeft: '9px solid transparent',
-                        borderRight: '9px solid transparent',
-                        borderTop: '13px solid #E53935',
-                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
-                      }} />
-                    </div>
-                    <div style={{
-                      marginTop: 2, background: 'white', borderRadius: 6,
-                      padding: '2px 8px', fontSize: 10,
-                      fontFamily: '"DM Sans", sans-serif', fontWeight: 600,
-                      color: '#E53935',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)', whiteSpace: 'nowrap',
-                    }}>
-                      Parada {parada?.cod_sms}
-                    </div>
-                  </div>
-                </OverlayView>
+                <Marker position={center} />
 
                 {tienePosicionValida && (
                   <OverlayView
                     position={{ lat: arribo!.latitud, lng: arribo!.longitud }}
                     mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                    getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
+                    getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -48 })}
                   >
                     <div style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center',
                       cursor: 'default', animation: 'busBounce 2s ease-in-out infinite',
                     }}>
-                      <div style={{
-                        width: 48, height: 48, borderRadius: '14px',
-                        background: '#F05510', border: '3px solid white',
-                        boxShadow: '0 3px 14px rgba(240,85,16,0.45)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <IconBus size={22} color="#FFFFFF" />
-                      </div>
+                      <img
+                        src={arribo!.descripcionLinea === 'K' ? trolleyBusIcon : busIcon}
+                        alt="colectivo"
+                        style={{ width: 48, height: 48, objectFit: 'cover' }}
+                      />
                       <div style={{
                         marginTop: 4, background: 'white', borderRadius: 6,
                         padding: '2px 8px', fontSize: 10,
                         fontFamily: '"DM Sans", sans-serif', fontWeight: 600,
-                        color: '#F05510',
+                        color: '#1A1917',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.15)', whiteSpace: 'nowrap',
                       }}>
-                        Int. {arribo!.identificadorCoche}
+                        {'LINEA ' + arribo!.descripcionLinea + (arribo!.descripcionCortaBandera && !/unico/i.test(arribo!.descripcionCortaBandera) ? ' ' + arribo!.descripcionCortaBandera : '')}
                       </div>
                     </div>
                   </OverlayView>

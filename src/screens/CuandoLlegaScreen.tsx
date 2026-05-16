@@ -1,12 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, AppBar, Toolbar, Skeleton, Fab } from '@mui/material';
-import { IconSearch, IconArrowLeft } from '@tabler/icons-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { getParadaInfo } from '../services/api';
-import ArriboCard from '../components/ArriboCard';
-import StopHeader from '../components/StopHeader';
-import type { Arribo, ParadaInfo } from '../types';
-import { tokens } from '../theme';
+import { useState, useEffect, useMemo } from "react";
+import { Box, Typography, AppBar, Toolbar, Skeleton, Fab } from "@mui/material";
+import { IconSearch, IconArrowLeft } from "@tabler/icons-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getParadaInfo } from "../services/api";
+import ArriboCard from "../components/ArriboCard";
+import StopHeader from "../components/StopHeader";
+import type { Arribo, ParadaInfo } from "../types";
+import { tokens } from "../theme";
 
 export default function CuandoLlegaScreen() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +28,7 @@ export default function CuandoLlegaScreen() {
         setArribos(result.arribos || []);
         setParada(result.parada?.[0] || null);
       } catch (error) {
-        console.error('Error fetching arribos:', error);
+        console.error("Error fetching arribos:", error);
       } finally {
         setLoading(false);
       }
@@ -77,20 +77,20 @@ export default function CuandoLlegaScreen() {
   };
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: tokens.bg }}>
+    <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: tokens.bg }}>
       <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
-        <Toolbar sx={{ minHeight: '48px !important', px: 1.5, gap: 1 }}>
+        <Toolbar sx={{ minHeight: "48px !important", px: 1.5, gap: 1 }}>
           <Box
             sx={{
               width: 28,
               height: 28,
-              borderRadius: '50%',
-              bgcolor: 'rgba(255,255,255,0.18)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              borderRadius: "50%",
+              bgcolor: "rgba(255,255,255,0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               flexShrink: 0,
-              cursor: 'pointer',
+              cursor: "pointer",
             }}
             onClick={() => navigate(-1)}
           >
@@ -101,7 +101,7 @@ export default function CuandoLlegaScreen() {
               fontFamily: '"DM Sans", sans-serif',
               fontWeight: 600,
               fontSize: 18,
-              color: '#FFFFFF',
+              color: "#FFFFFF",
               lineHeight: 1.2,
             }}
           >
@@ -112,25 +112,61 @@ export default function CuandoLlegaScreen() {
 
       {parada && <StopHeader parada={parada} secondsLeft={secondsLeft} />}
 
-      <Box sx={{ maxWidth: 600, mx: 'auto', px: 0, pb: 10 }}>
-        {loading && [0, 1, 2].map(i => (
-          <Box key={i} sx={{ mx: 1.5, mt: 1.5, bgcolor: tokens.surface, borderRadius: '16px', border: `1px solid ${tokens.border}`, borderLeft: `3px solid ${tokens.brand}`, p: 1.75 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: '10px' }} />
-              <Box sx={{ flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Skeleton variant="text" width={40} height={18} />
-                  <Skeleton variant="rounded" width={50} height={16} sx={{ borderRadius: '5px' }} />
+      <Box sx={{ maxWidth: 600, mx: "auto", px: 0, pb: 10 }}>
+        {loading &&
+          [0, 1, 2].map((i) => (
+            <Box
+              key={i}
+              sx={{
+                mx: 1.5,
+                mt: 1.5,
+                bgcolor: tokens.surface,
+                borderRadius: "16px",
+                border: `1px solid ${tokens.border}`,
+                borderLeft: `3px solid ${tokens.brand}`,
+                p: 1.75,
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Skeleton
+                  variant="rounded"
+                  width={34}
+                  height={34}
+                  sx={{ borderRadius: "10px" }}
+                />
+                <Box sx={{ flexGrow: 1 }}>
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                  >
+                    <Skeleton variant="text" width={40} height={18} />
+                    <Skeleton
+                      variant="rounded"
+                      width={50}
+                      height={16}
+                      sx={{ borderRadius: "5px" }}
+                    />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      mt: 0.5,
+                    }}
+                  >
+                    <Skeleton variant="text" width={80} height={14} />
+                  </Box>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                  <Skeleton variant="text" width={80} height={14} />
-                </Box>
+                <Skeleton
+                  variant="rounded"
+                  width={56}
+                  height={22}
+                  sx={{ borderRadius: "8px" }}
+                />
+                <Skeleton variant="circular" width={22} height={22} />
               </Box>
-              <Skeleton variant="rounded" width={56} height={22} sx={{ borderRadius: '8px' }} />
-              <Skeleton variant="circular" width={22} height={22} />
             </Box>
-          </Box>
-        ))}
+          ))}
 
         {!loading && (
           <Box>
@@ -140,9 +176,9 @@ export default function CuandoLlegaScreen() {
                   fontFamily: '"DM Sans", sans-serif',
                   fontWeight: 600,
                   fontSize: 10,
-                  letterSpacing: '0.08em',
+                  letterSpacing: "0.08em",
                   color: tokens.textMuted,
-                  textTransform: 'uppercase',
+                  textTransform: "uppercase",
                   px: 2,
                   pt: 1.25,
                   pb: 0.5,
@@ -167,7 +203,12 @@ export default function CuandoLlegaScreen() {
 
             {arribos.length === 0 && (
               <Typography
-                sx={{ textAlign: 'center', py: 4, color: tokens.textSecondary, fontSize: 14 }}
+                sx={{
+                  textAlign: "center",
+                  py: 4,
+                  color: tokens.textSecondary,
+                  fontSize: 14,
+                }}
               >
                 No hay colectivos en camino
               </Typography>
@@ -178,16 +219,16 @@ export default function CuandoLlegaScreen() {
 
       <Fab
         sx={{
-          position: 'fixed',
+          position: "fixed",
           bottom: 16,
           right: 16,
           width: 44,
           height: 44,
           bgcolor: tokens.brand,
           boxShadow: `0 3px 10px rgba(240,85,16,0.35)`,
-          '&:hover': { bgcolor: tokens.brandDark },
+          "&:hover": { bgcolor: tokens.brandDark },
         }}
-        onClick={() => navigate('/')}
+        onClick={() => navigate("/")}
       >
         <IconSearch size={20} color="#FFFFFF" />
       </Fab>
