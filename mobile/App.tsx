@@ -19,7 +19,7 @@ export default function App() {
       <WebView
         source={{ uri: APP_URL }}
         style={styles.webview}
-        onNavigationStateChange={handleNavigationState}
+        geolocationEnabled
         javaScriptEnabled
         domStorageEnabled
         startInLoadingState
