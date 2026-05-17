@@ -23,7 +23,7 @@
         "backgroundColor": "#F05510"
       },
       "package": "com.magicbus.app",
-      "permissions": []
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "platforms": [
       "android"
