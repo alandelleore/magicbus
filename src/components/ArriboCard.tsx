@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Card, Collapse, Typography, Box } from '@mui/material';
 import {
-  IconBus,
   IconBusStop,
   IconIdBadge2,
   IconSatellite,
@@ -11,6 +10,7 @@ import {
 } from '@tabler/icons-react';
 import type { Arribo } from '../types';
 import { tokens } from '../theme';
+import { PlacaLinea } from './PlacaLinea';
 
 interface ArriboCardProps {
   codigoLinea: string;
@@ -97,50 +97,54 @@ export default function ArriboCard({
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Box
-          sx={{
-            width: 34,
-            height: 34,
-            borderRadius: '10px',
-            bgcolor: tokens.surface2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <IconBus size={17} color={tokens.textSecondary} />
-        </Box>
+        <PlacaLinea numero={descripcionLinea} ramal={descripcionCortaBandera} />
 
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+          <Box sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            bgcolor: tokens.surface2,
+            borderRadius: '5px',
+            px: 0.75,
+            py: 0.25,
+          }}>
             <Typography
               sx={{
-                fontFamily: '"DM Mono", monospace',
-                fontWeight: 600,
-                fontSize: 15,
-                color: tokens.textPrimary,
-                lineHeight: 1.2,
+                fontFamily: '"DM Sans", sans-serif',
+                fontWeight: 500,
+                fontSize: 11,
+                color: tokens.textSecondary,
+                lineHeight: 1.3,
+              }}
+            >
+              LINEA
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: '"DM Sans", sans-serif',
+                fontWeight: 700,
+                fontSize: 11,
+                color: tokens.textSecondary,
+                lineHeight: 1.3,
               }}
             >
               {descripcionLinea}
             </Typography>
             {descripcionCortaBandera && (
-              <Typography
-                sx={{
-                  fontFamily: '"DM Sans", sans-serif',
-                  fontWeight: 500,
-                  fontSize: 11,
-                  color: tokens.textSecondary,
-                  bgcolor: tokens.surface2,
-                  borderRadius: '5px',
-                  px: 0.625,
-                  py: 0.125,
-                  lineHeight: 1.3,
-                }}
-              >
-                {descripcionCortaBandera}
-              </Typography>
+              <>
+                <Typography
+                  sx={{
+                    fontFamily: '"DM Sans", sans-serif',
+                    fontWeight: 500,
+                    fontSize: 11,
+                    color: tokens.textSecondary,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {descripcionCortaBandera}
+                </Typography>
+              </>
             )}
           </Box>
 
