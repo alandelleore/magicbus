@@ -23,6 +23,7 @@ export default function BuscarParadaScreen() {
   const [queryBuscada, setQueryBuscada] = useState('');
   const [resultados, setResultados] = useState<Parada[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
   const { favoritos, toggleFavorito, esFavorito } = useFavoritos();
   const { searchState, setSearchState } = useSearchContext();
@@ -40,6 +41,7 @@ export default function BuscarParadaScreen() {
   const handleSearch = async () => {
     const q = inputValue.trim();
     if (!q) return;
+    setErrorMsg('');
     setQueryBuscada(q);
     setLoading(true);
     try {
@@ -57,6 +59,7 @@ export default function BuscarParadaScreen() {
 
   const handleInputChange = (val: string) => {
     setInputValue(val);
+    setErrorMsg('');
     if (val === '') {
       setQueryBuscada('');
       setResultados([]);
@@ -83,6 +86,7 @@ export default function BuscarParadaScreen() {
     setResultados([]);
     setInputValue('');
     setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
+    setErrorMsg('');
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude: lat, longitude: lng } = position.coords;
@@ -102,8 +106,10 @@ export default function BuscarParadaScreen() {
         setLoading(false);
         setQueryBuscada('');
         setResultados([]);
+        setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
         setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
       },
+      { timeout: 10000, enableHighAccuracy: false },
     );
   };
 
@@ -161,9 +167,15 @@ export default function BuscarParadaScreen() {
             </Box>
           ))}
 
-          {!loading && resultados.length === 0 && (
+          {!loading && resultados.length === 0 && !errorMsg && (
             <Typography sx={{ textAlign: 'center', py: 4, color: tokens.textSecondary, fontSize: 14 }}>
               No se encontraron paradas
+            </Typography>
+          )}
+
+          {errorMsg && (
+            <Typography sx={{ textAlign: 'center', py: 2, color: tokens.red, fontSize: 12 }}>
+              {errorMsg}
             </Typography>
           )}
 
