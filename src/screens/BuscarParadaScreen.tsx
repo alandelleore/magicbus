@@ -79,38 +79,56 @@ export default function BuscarParadaScreen() {
     navigate(`/cuando-llega/${cod_sms}`);
   };
 
-  const obtenerUbicacion = () => {
-    if (!navigator.geolocation) return;
+  const obtenerUbicacion = async () => {
     setLoading(true);
     setQueryBuscada(' ');
     setResultados([]);
     setInputValue('');
     setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
     setErrorMsg('');
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude: lat, longitude: lng } = position.coords;
-        try {
-          const data = await buscarParadas('', lat, lng);
-          const results = data.paradas || [];
-          setResultados(results);
-          setSearchState({ inputValue: '', queryBuscada: ' ', resultados: results });
-        } catch {
-          setResultados([]);
-          setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
-        } finally {
-          setLoading(false);
-        }
-      },
-      () => {
+
+    let lat: number, lng: number;
+
+    const nativeLoc = (window as any).__nativeLocation as { lat: number; lng: number } | undefined;
+    if (nativeLoc) {
+      lat = nativeLoc.lat;
+      lng = nativeLoc.lng;
+    } else if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 10000,
+            enableHighAccuracy: false,
+          });
+        });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch {
         setLoading(false);
         setQueryBuscada('');
-        setResultados([]);
         setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
         setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
-      },
-      { timeout: 10000, enableHighAccuracy: false },
-    );
+        return;
+      }
+    } else {
+      setLoading(false);
+      setQueryBuscada('');
+      setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
+      setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
+      return;
+    }
+
+    try {
+      const data = await buscarParadas('', lat, lng);
+      const results = data.paradas || [];
+      setResultados(results);
+      setSearchState({ inputValue: '', queryBuscada: ' ', resultados: results });
+    } catch {
+      setResultados([]);
+      setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
