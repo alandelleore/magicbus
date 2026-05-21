@@ -11,6 +11,15 @@
       "backgroundColor": "#F05510",
       "resizeMode": "contain"
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "MagicBus necesita acceder a tu ubicación para encontrar paradas cercanas.",
+          "locationWhenInUsePermission": "MagicBus necesita acceder a tu ubicación para encontrar paradas cercanas."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": false,
       "infoPlist": {

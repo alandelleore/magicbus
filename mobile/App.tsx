@@ -21,14 +21,25 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      locationRef.current = loc;
-      doInject(loc);
+      try {
+        console.log('[MagicBus] Solicitando permiso de ubicación...');
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        console.log('[MagicBus] Estado del permiso:', status);
+        if (status !== 'granted') {
+          console.log('[MagicBus] Permiso denegado por el usuario');
+          return;
+        }
+        console.log('[MagicBus] Obteniendo posición...');
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        console.log('[MagicBus] Ubicación obtenida:', loc);
+        locationRef.current = loc;
+        doInject(loc);
+      } catch (err) {
+        console.error('[MagicBus] Error al obtener ubicación:', err);
+      }
     })();
   }, [doInject]);
 
