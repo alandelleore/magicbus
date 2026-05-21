@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, SafeAreaView, Platform, StatusBar as RNStatusBar } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
@@ -8,35 +8,39 @@ const APP_URL = 'https://magicbus91.vercel.app';
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
+  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const injectedRef = useRef(false);
 
-  const handleMessage = useCallback(async (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data?.type !== 'GET_LOCATION') return;
+  const doInject = useCallback((loc: { lat: number; lng: number }) => {
+    if (injectedRef.current) return;
+    webViewRef.current?.injectJavaScript(
+      `window.__nativeLocation = ${JSON.stringify(loc)}; true;`
+    );
+    injectedRef.current = true;
+  }, []);
 
+  useEffect(() => {
+    (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        webViewRef.current?.injectJavaScript(
-          `window.__handleLocationError("Permiso denegado"); true;`
-        );
-        return;
-      }
-
+      if (status !== 'granted') return;
       const pos = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 10000,
       });
-
       const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      locationRef.current = loc;
+      doInject(loc);
+    })();
+  }, [doInject]);
+
+  const handleLoadEnd = useCallback(() => {
+    if (locationRef.current) {
+      doInject(locationRef.current);
+    } else {
       webViewRef.current?.injectJavaScript(
-        `window.__handleLocation(${JSON.stringify(loc)}); true;`
-      );
-    } catch {
-      webViewRef.current?.injectJavaScript(
-        `window.__handleLocationError("Error al obtener ubicación"); true;`
+        `console.log('[MagicBus] Esperando ubicación nativa...'); true;`
       );
     }
-  }, []);
+  }, [doInject]);
 
   const handleNavigationState = useCallback((navState: any) => {
     return !(navState.url && !navState.url.startsWith(APP_URL));
@@ -54,7 +58,7 @@ export default function App() {
         startInLoadingState
         allowsBackForwardNavigationGestures
         setSupportMultipleWindows={false}
-        onMessage={handleMessage}
+        onLoadEnd={handleLoadEnd}
         onNavigationStateChange={handleNavigationState}
       />
     </SafeAreaView>

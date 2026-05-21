@@ -93,97 +93,55 @@ export default function BuscarParadaScreen() {
     setErrorMsg('');
     setDebugLogs([]);
 
-    addLog('Iniciando búsqueda de ubicación...');
+    addLog('📍 Iniciando búsqueda de ubicación...');
     let lat: number, lng: number;
 
     const cached = (window as any).__nativeLocation as { lat: number; lng: number } | undefined;
+    const hasGeolocation = !!navigator.geolocation;
+
+    addLog(`¿window.__nativeLocation disponible? ${cached ? 'SÍ' : 'NO'}`);
+    addLog(`¿navigator.geolocation disponible? ${hasGeolocation ? 'SÍ' : 'NO'}`);
+
     if (cached) {
-      addLog('✅ Cache hit, usando coordenadas previas');
+      addLog('✅ Usando coordenadas inyectadas por app nativa');
       lat = cached.lat;
       lng = cached.lng;
-    } else {
-      const hasPostMessage = !!(window as any).ReactNativeWebView?.postMessage;
-      addLog(`¿ReactNativeWebView.postMessage disponible? ${hasPostMessage ? 'SÍ' : 'NO'}`);
-      const hasGeolocation = !!navigator.geolocation;
-      addLog(`¿navigator.geolocation disponible? ${hasGeolocation ? 'SÍ' : 'NO'}`);
-
-      if (hasPostMessage) {
-        addLog('Intentando postMessage a app nativa...');
-        let cleaned = false;
-        const cleanup = () => {
-          if (cleaned) return;
-          cleaned = true;
-          delete (window as any).__handleLocation;
-          delete (window as any).__handleLocationError;
-        };
-
-        try {
-          const pos = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              cleanup();
-              addLog('❌ Timeout 15s alcanzado');
-              reject(new Error('timeout'));
-            }, 15000);
-
-            (window as any).__handleLocation = (loc: { lat: number; lng: number }) => {
-              addLog(`✅ Recibidas coordenadas: ${loc.lat}, ${loc.lng}`);
-              cleanup();
-              resolve(loc);
-            };
-            (window as any).__handleLocationError = (msg: string) => {
-              addLog(`❌ Error recibido de app nativa: ${msg}`);
-              cleanup();
-              reject(new Error(msg));
-            };
-
-            addLog('Enviando GET_LOCATION...');
-            (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: 'GET_LOCATION' }));
+    } else if (hasGeolocation) {
+      addLog('🟡 Intentando navigator.geolocation...');
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 10000,
+            enableHighAccuracy: false,
           });
-
-          (window as any).__nativeLocation = pos;
-          lat = pos.lat;
-          lng = pos.lng;
-          addLog('✅ Coordenadas cacheadas en __nativeLocation');
-        } catch (err) {
-          cleanup();
-          setLoading(false);
-          setQueryBuscada('');
-          const msg = err instanceof Error ? err.message : 'Error desconocido';
-          setErrorMsg(`No se pudo obtener tu ubicación. ${msg}`);
-          setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
-          return;
-        }
-      } else if (hasGeolocation) {
-        addLog('Intentando navigator.geolocation...');
-        try {
-          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 10000,
-              enableHighAccuracy: false,
-            });
-          });
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-          addLog(`✅ Coordenadas obtenidas: ${lat}, ${lng}`);
-        } catch {
-          addLog('❌ navigator.geolocation falló');
-          setLoading(false);
-          setQueryBuscada('');
-          setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
-          setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
-          return;
-        }
-      } else {
-        addLog('❌ Sin postMessage ni geolocation');
+        });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        addLog(`✅ Coordenadas obtenidas: ${lat}, ${lng}`);
+      } catch {
+        addLog('❌ navigator.geolocation falló');
         setLoading(false);
         setQueryBuscada('');
-        setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
+        const info =
+          "Si estás en la app nativa: revisá Ajustes → Aplicaciones → MagicBus → Permisos → Ubicación → 'Permitir solo mientras la app está en uso'. Luego cerrá y abrí la app de nuevo.";
+        setErrorMsg(
+          'No se pudo obtener tu ubicación. ' + info
+        );
         setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
         return;
       }
+    } else {
+      addLog('❌ Sin __nativeLocation ni navigator.geolocation');
+      setLoading(false);
+      setQueryBuscada('');
+      setErrorMsg(
+        'No se pudo obtener tu ubicación. Verificá que tengas un navegador compatible.'
+      );
+      setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
+      return;
     }
 
-    addLog('Llamando a la API con coordenadas...');
+    addLog('🌐 Llamando a la API con coordenadas...');
     try {
       const data = await buscarParadas('', lat, lng);
       const results = data.paradas || [];
