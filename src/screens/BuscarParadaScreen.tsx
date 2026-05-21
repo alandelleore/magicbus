@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -24,6 +24,11 @@ export default function BuscarParadaScreen() {
   const [resultados, setResultados] = useState<Parada[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const addLog = useCallback((msg: string) => {
+    setDebugLogs(prev => [...prev, msg]);
+    console.log('[📍GeoDebug]', msg);
+  }, []);
   const navigate = useNavigate();
   const { favoritos, toggleFavorito, esFavorito } = useFavoritos();
   const { searchState, setSearchState } = useSearchContext();
@@ -86,83 +91,108 @@ export default function BuscarParadaScreen() {
     setInputValue('');
     setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
     setErrorMsg('');
+    setDebugLogs([]);
 
+    addLog('Iniciando búsqueda de ubicación...');
     let lat: number, lng: number;
 
     const cached = (window as any).__nativeLocation as { lat: number; lng: number } | undefined;
     if (cached) {
+      addLog('✅ Cache hit, usando coordenadas previas');
       lat = cached.lat;
       lng = cached.lng;
-    } else if ((window as any).ReactNativeWebView?.postMessage) {
-      let cleaned = false;
-      const cleanup = () => {
-        if (cleaned) return;
-        cleaned = true;
-        delete (window as any).__handleLocation;
-        delete (window as any).__handleLocationError;
-      };
-
-      try {
-        const pos = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            cleanup();
-            reject(new Error('timeout'));
-          }, 15000);
-
-          (window as any).__handleLocation = (loc: { lat: number; lng: number }) => {
-            cleanup();
-            resolve(loc);
-          };
-          (window as any).__handleLocationError = (msg: string) => {
-            cleanup();
-            reject(new Error(msg));
-          };
-
-          (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: 'GET_LOCATION' }));
-        });
-
-        (window as any).__nativeLocation = pos;
-        lat = pos.lat;
-        lng = pos.lng;
-      } catch {
-        cleanup();
-        setLoading(false);
-        setQueryBuscada('');
-        setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
-        setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
-        return;
-      }
-    } else if (navigator.geolocation) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 10000,
-            enableHighAccuracy: false,
-          });
-        });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } catch {
-        setLoading(false);
-        setQueryBuscada('');
-        setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
-        setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
-        return;
-      }
     } else {
-      setLoading(false);
-      setQueryBuscada('');
-      setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
-      setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
-      return;
+      const hasPostMessage = !!(window as any).ReactNativeWebView?.postMessage;
+      addLog(`¿ReactNativeWebView.postMessage disponible? ${hasPostMessage ? 'SÍ' : 'NO'}`);
+      const hasGeolocation = !!navigator.geolocation;
+      addLog(`¿navigator.geolocation disponible? ${hasGeolocation ? 'SÍ' : 'NO'}`);
+
+      if (hasPostMessage) {
+        addLog('Intentando postMessage a app nativa...');
+        let cleaned = false;
+        const cleanup = () => {
+          if (cleaned) return;
+          cleaned = true;
+          delete (window as any).__handleLocation;
+          delete (window as any).__handleLocationError;
+        };
+
+        try {
+          const pos = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              cleanup();
+              addLog('❌ Timeout 15s alcanzado');
+              reject(new Error('timeout'));
+            }, 15000);
+
+            (window as any).__handleLocation = (loc: { lat: number; lng: number }) => {
+              addLog(`✅ Recibidas coordenadas: ${loc.lat}, ${loc.lng}`);
+              cleanup();
+              resolve(loc);
+            };
+            (window as any).__handleLocationError = (msg: string) => {
+              addLog(`❌ Error recibido de app nativa: ${msg}`);
+              cleanup();
+              reject(new Error(msg));
+            };
+
+            addLog('Enviando GET_LOCATION...');
+            (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: 'GET_LOCATION' }));
+          });
+
+          (window as any).__nativeLocation = pos;
+          lat = pos.lat;
+          lng = pos.lng;
+          addLog('✅ Coordenadas cacheadas en __nativeLocation');
+        } catch (err) {
+          cleanup();
+          setLoading(false);
+          setQueryBuscada('');
+          const msg = err instanceof Error ? err.message : 'Error desconocido';
+          setErrorMsg(`No se pudo obtener tu ubicación. ${msg}`);
+          setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
+          return;
+        }
+      } else if (hasGeolocation) {
+        addLog('Intentando navigator.geolocation...');
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 10000,
+              enableHighAccuracy: false,
+            });
+          });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+          addLog(`✅ Coordenadas obtenidas: ${lat}, ${lng}`);
+        } catch {
+          addLog('❌ navigator.geolocation falló');
+          setLoading(false);
+          setQueryBuscada('');
+          setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
+          setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
+          return;
+        }
+      } else {
+        addLog('❌ Sin postMessage ni geolocation');
+        setLoading(false);
+        setQueryBuscada('');
+        setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
+        setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
+        return;
+      }
     }
 
+    addLog('Llamando a la API con coordenadas...');
     try {
       const data = await buscarParadas('', lat, lng);
       const results = data.paradas || [];
       setResultados(results);
       setSearchState({ inputValue: '', queryBuscada: ' ', resultados: results });
+      addLog(`✅ API respondió con ${results.length} resultados`);
+      setDebugLogs([]);
     } catch {
+      addLog('❌ API falló');
       setResultados([]);
       setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
     } finally {
@@ -445,6 +475,41 @@ export default function BuscarParadaScreen() {
       )}
 
       <DownloadCTA />
+
+      {debugLogs.length > 0 && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 72,
+            left: 8,
+            right: 8,
+            bgcolor: '#1A1917',
+            borderRadius: '10px',
+            p: 1.25,
+            zIndex: 9999,
+            maxHeight: 180,
+            overflowY: 'auto',
+          }}
+        >
+          {debugLogs.map((log, i) => {
+            const ok = log.includes('✅');
+            const err = log.includes('❌');
+            return (
+              <Typography
+                key={i}
+                sx={{
+                  fontFamily: '"DM Mono", monospace',
+                  fontSize: 10,
+                  lineHeight: 1.6,
+                  color: err ? tokens.red : ok ? tokens.green : '#FFFFFF',
+                }}
+              >
+                {log}
+              </Typography>
+            );
+          })}
+        </Box>
+      )}
 
       <Fab
         sx={{
