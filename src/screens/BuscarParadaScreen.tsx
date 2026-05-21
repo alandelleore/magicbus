@@ -89,10 +89,49 @@ export default function BuscarParadaScreen() {
 
     let lat: number, lng: number;
 
-    const nativeLoc = (window as any).__nativeLocation as { lat: number; lng: number } | undefined;
-    if (nativeLoc) {
-      lat = nativeLoc.lat;
-      lng = nativeLoc.lng;
+    const cached = (window as any).__nativeLocation as { lat: number; lng: number } | undefined;
+    if (cached) {
+      lat = cached.lat;
+      lng = cached.lng;
+    } else if ((window as any).ReactNativeWebView?.postMessage) {
+      let cleaned = false;
+      const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        delete (window as any).__handleLocation;
+        delete (window as any).__handleLocationError;
+      };
+
+      try {
+        const pos = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error('timeout'));
+          }, 15000);
+
+          (window as any).__handleLocation = (loc: { lat: number; lng: number }) => {
+            cleanup();
+            resolve(loc);
+          };
+          (window as any).__handleLocationError = (msg: string) => {
+            cleanup();
+            reject(new Error(msg));
+          };
+
+          (window as any).ReactNativeWebView.postMessage(JSON.stringify({ type: 'GET_LOCATION' }));
+        });
+
+        (window as any).__nativeLocation = pos;
+        lat = pos.lat;
+        lng = pos.lng;
+      } catch {
+        cleanup();
+        setLoading(false);
+        setQueryBuscada('');
+        setErrorMsg('No se pudo obtener tu ubicación. Intentá de nuevo o buscá por texto.');
+        setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
+        return;
+      }
     } else if (navigator.geolocation) {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
