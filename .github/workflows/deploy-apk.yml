@@ -26,9 +26,23 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - run: cd mobile && eas build --platform android --profile preview --non-interactive --wait
+      - name: Build APK on EAS
+        working-directory: ./mobile
+        run: eas build --platform android --profile preview --non-interactive --wait --json > build.json
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Download APK from EAS
+        working-directory: ./mobile
+        run: |
+          URL=$(jq -r '.[0].artifacts.buildUrl' build.json)
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            echo "No buildUrl found in EAS response"
+            cat build.json
+            exit 1
+          fi
+          curl -L -o magicbus.apk "$URL"
+          ls -la magicbus.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
