@@ -1,6 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { StyleSheet, SafeAreaView, Platform, StatusBar as RNStatusBar } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
 
@@ -8,50 +8,53 @@ const APP_URL = 'https://magicbus91.vercel.app';
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
-  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
-  const injectedRef = useRef(false);
 
-  const doInject = useCallback((loc: { lat: number; lng: number }) => {
-    if (injectedRef.current) return;
+  const respond = useCallback((requestId: string, payload: object) => {
+    const json = JSON.stringify({ requestId, ...payload });
     webViewRef.current?.injectJavaScript(
-      `window.__nativeLocation = ${JSON.stringify(loc)}; true;`
+      `window.dispatchEvent(new CustomEvent('nativeLocationResponse', { detail: ${json} })); true;`
     );
-    injectedRef.current = true;
   }, []);
 
-  useEffect(() => {
-    (async () => {
+  const handleLocationRequest = useCallback(
+    async (requestId: string) => {
       try {
-        console.log('[MagicBus] Solicitando permiso de ubicación...');
         const { status } = await Location.requestForegroundPermissionsAsync();
-        console.log('[MagicBus] Estado del permiso:', status);
         if (status !== 'granted') {
-          console.log('[MagicBus] Permiso denegado por el usuario');
+          respond(requestId, { ok: false, error: 'permission_denied' });
           return;
         }
-        console.log('[MagicBus] Obteniendo posición...');
         const pos = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        console.log('[MagicBus] Ubicación obtenida:', loc);
-        locationRef.current = loc;
-        doInject(loc);
-      } catch (err) {
-        console.error('[MagicBus] Error al obtener ubicación:', err);
+        respond(requestId, {
+          ok: true,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      } catch (err: any) {
+        respond(requestId, { ok: false, error: String(err?.message ?? err) });
       }
-    })();
-  }, [doInject]);
+    },
+    [respond]
+  );
+
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      try {
+        const msg = JSON.parse(event.nativeEvent.data);
+        if (msg?.type === 'REQUEST_LOCATION' && typeof msg.requestId === 'string') {
+          handleLocationRequest(msg.requestId);
+        }
+      } catch {
+      }
+    },
+    [handleLocationRequest]
+  );
 
   const handleLoadEnd = useCallback(() => {
-    if (locationRef.current) {
-      doInject(locationRef.current);
-    } else {
-      webViewRef.current?.injectJavaScript(
-        `console.log('[MagicBus] Esperando ubicación nativa...'); true;`
-      );
-    }
-  }, [doInject]);
+    webViewRef.current?.injectJavaScript(`window.__isNativeApp = true; true;`);
+  }, []);
 
   const handleNavigationState = useCallback((navState: any) => {
     return !(navState.url && !navState.url.startsWith(APP_URL));
@@ -69,6 +72,8 @@ export default function App() {
         startInLoadingState
         allowsBackForwardNavigationGestures
         setSupportMultipleWindows={false}
+        geolocationEnabled
+        onMessage={handleMessage}
         onLoadEnd={handleLoadEnd}
         onNavigationStateChange={handleNavigationState}
       />

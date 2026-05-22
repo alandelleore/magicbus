@@ -84,6 +84,33 @@ export default function BuscarParadaScreen() {
     navigate(`/cuando-llega/${cod_sms}`);
   };
 
+  const requestNativeLocation = (timeoutMs = 30000) =>
+    new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+      const w = window as any;
+      if (!w.ReactNativeWebView) {
+        reject(new Error('not_native'));
+        return;
+      }
+      const requestId = `loc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const onResponse = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        if (!detail || detail.requestId !== requestId) return;
+        cleanup();
+        if (detail.ok) resolve({ lat: detail.lat, lng: detail.lng });
+        else reject(new Error(detail.error || 'unknown'));
+      };
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('timeout'));
+      }, timeoutMs);
+      const cleanup = () => {
+        window.removeEventListener('nativeLocationResponse', onResponse as EventListener);
+        clearTimeout(timer);
+      };
+      window.addEventListener('nativeLocationResponse', onResponse as EventListener);
+      w.ReactNativeWebView.postMessage(JSON.stringify({ type: 'REQUEST_LOCATION', requestId }));
+    });
+
   const obtenerUbicacion = async () => {
     setLoading(true);
     setQueryBuscada(' ');
@@ -96,16 +123,34 @@ export default function BuscarParadaScreen() {
     addLog('📍 Iniciando búsqueda de ubicación...');
     let lat: number, lng: number;
 
-    const cached = (window as any).__nativeLocation as { lat: number; lng: number } | undefined;
+    const isNative = !!(window as any).ReactNativeWebView;
     const hasGeolocation = !!navigator.geolocation;
 
-    addLog(`¿window.__nativeLocation disponible? ${cached ? 'SÍ' : 'NO'}`);
+    addLog(`¿App nativa (WebView)? ${isNative ? 'SÍ' : 'NO'}`);
     addLog(`¿navigator.geolocation disponible? ${hasGeolocation ? 'SÍ' : 'NO'}`);
 
-    if (cached) {
-      addLog('✅ Usando coordenadas inyectadas por app nativa');
-      lat = cached.lat;
-      lng = cached.lng;
+    if (isNative) {
+      addLog('🟡 Pidiendo ubicación al host nativo...');
+      try {
+        const loc = await requestNativeLocation();
+        lat = loc.lat;
+        lng = loc.lng;
+        addLog(`✅ Ubicación nativa: ${lat}, ${lng}`);
+      } catch (err: any) {
+        const reason = err?.message || 'unknown';
+        addLog(`❌ Ubicación nativa falló: ${reason}`);
+        setLoading(false);
+        setQueryBuscada('');
+        const info =
+          reason === 'permission_denied'
+            ? "Permiso de ubicación denegado. Andá a Ajustes → Aplicaciones → MagicBus → Permisos → Ubicación y permitilo."
+            : reason === 'timeout'
+            ? 'No respondió el GPS a tiempo. Probá de nuevo al aire libre.'
+            : 'No se pudo obtener tu ubicación.';
+        setErrorMsg(info);
+        setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
+        return;
+      }
     } else if (hasGeolocation) {
       addLog('🟡 Intentando navigator.geolocation...');
       try {
@@ -122,16 +167,12 @@ export default function BuscarParadaScreen() {
         addLog('❌ navigator.geolocation falló');
         setLoading(false);
         setQueryBuscada('');
-        const info =
-          "Si estás en la app nativa: revisá Ajustes → Aplicaciones → MagicBus → Permisos → Ubicación → 'Permitir solo mientras la app está en uso'. Luego cerrá y abrí la app de nuevo.";
-        setErrorMsg(
-          'No se pudo obtener tu ubicación. ' + info
-        );
+        setErrorMsg('No se pudo obtener tu ubicación. Verificá los permisos del navegador.');
         setSearchState({ inputValue: '', queryBuscada: '', resultados: [] });
         return;
       }
     } else {
-      addLog('❌ Sin __nativeLocation ni navigator.geolocation');
+      addLog('❌ Sin API de ubicación disponible');
       setLoading(false);
       setQueryBuscada('');
       setErrorMsg(
