@@ -25,7 +25,7 @@ App web para consultar colectivos en Rosario en tiempo real.
 
 La app web tiene un wrapper nativo que se distribuye como APK.
 
-- **Descargar APK:** [magicbus.apk](https://github.com/alandelleore/magicbus/releases/download/v1.0.0/magicbus.apk)
+- **Descargar APK:** [magicbus.apk](https://github.com/alandelleore/magicbus/releases/latest/download/magicbus.apk)
 - Al abrir la web desde un navegador móvil aparece un banner para descargar la app.
 - El APK se genera automáticamente via **EAS Build** al pushear cambios en `mobile/` (GitHub Actions).
 - Android 6+ requerido. Es un APK de debug (sin firma de producción).
