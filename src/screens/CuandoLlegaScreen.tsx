@@ -27,8 +27,7 @@ export default function CuandoLlegaScreen() {
         const result = await getParadaInfo(id);
         setArribos(result.arribos || []);
         setParada(result.parada?.[0] || null);
-      } catch (error) {
-        console.error("Error fetching arribos:", error);
+      } catch {
       } finally {
         setLoading(false);
       }

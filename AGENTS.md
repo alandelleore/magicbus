@@ -7,7 +7,8 @@
 - **Mapas**: @react-google-maps/api (Google Maps) con OverlayView para markers custom
 - **Iconos**: @tabler/icons-react (reemplaza MUI Icons)
 - **Fuentes**: DM Sans (UI general) + DM Mono (números, IDs, tiempos)
-- **Despliegue**: Vercel (con proxys para APIs externas)
+- **Despliegue web**: Vercel (auto en cada push a main, sin GitHub Actions)
+- **Despliegue APK**: GitHub Actions `.github/workflows/deploy-apk.yml` → EAS Build → GitHub Releases
 
 ## APIs externas
 
@@ -67,19 +68,36 @@ src/
 │   └── DetalleScreen.tsx        # Detalle + Google Maps (polling 30s)
 ├── components/
 │   ├── ArriboCard.tsx           # Card expandible agrupada por línea (rediseñada)
-│   └── StopHeader.tsx           # Header de parada con badge naranja + polling indicator
+│   ├── StopHeader.tsx           # Header de parada con badge naranja + polling indicator
+│   ├── SearchBox.tsx            # Input de búsqueda
+│   ├── DownloadCTA.tsx          # Banner descarga APK
+│   ├── MagicBusLogo.tsx         # Logo SVG
+│   └── PlacaLinea.tsx           # Badge línea + ramal
 ├── services/
 │   ├── api.ts                   # API cuandoLlegaRosario
 │   └── apiGobierno.ts           # API gobierno Rosario (líneas, recorridos)
 ├── hooks/
 │   ├── useLineasGobierno.ts     # Hook con cache de líneas + buscarLineaId()
 │   └── usePollingCountdown.ts   # Hook reutilizable de polling con countdown
+├── context/
+│   └── SearchContext.tsx         # Contexto de búsqueda (persiste entre pantallas)
 ├── types/
 │   └── index.ts                 # Interfaces: Parada, Arribo, ParadaInfo, etc.
 ├── theme/
 │   └── index.ts                 # Tema MUI + tokens exportados
 └── utils/
-    └── coordinateConversion.ts  # Conversión EPSG:22185 → WGS84
+    └── coordinateConversion.ts  # Conversión EPSG:22185 → WGS84 (no usado)
+
+mobile/
+├── App.tsx                      # WebView + puente postMessage + BackHandler
+├── app.json                     # Config Expo (splash, permisos, EAS)
+└── assets/
+    ├── icon.png                 # Ícono de la app
+    └── splash-2732x2732.png     # Splash screen
+
+vercel.json                      # Rewrites de API + SPA fallback
+.github/workflows/
+└── deploy-apk.yml               # GH Action: EAS Build → GitHub Release
 ```
 
 ## Design Tokens (`src/theme/index.ts`)
@@ -237,7 +255,7 @@ Header de parada en CuandoLlegaScreen:
 | `android-chrome-512.png` | `public/` | PWA manifest (512×512) |
 | `manifest.json` | `public/` | PWA manifest (standalone, theme_color `#F05510`) |
 | `app-icon-1024.png` | `src/assets/` | Master 1024×1024 (origen de `mobile/assets/icon.png`) |
-| `splash-2732x2732.png` | `src/assets/` | Splash universal (origen de `mobile/assets/splash.png`) |
+| `splash-2732x2732.png` | `src/assets/` | Splash universal (origen de `mobile/assets/splash-2732x2732.png`) |
 | `splash-{828,1170,1284}x*` | `src/assets/` | Splash iOS manual (referencia, no usado) |
 | `splash-{1080,2160}x*` | `src/assets/` | Splash Android manual (referencia, no usado) |
 | `magicbus-logo.svg` | `public/` | Logo SVG, conservado |
@@ -247,14 +265,49 @@ Header de parada en CuandoLlegaScreen:
 La app nativa vive en `mobile/`. Es un WebView que carga `https://magicbus91.vercel.app`.
 
 - `mobile/assets/icon.png` — icono de la app (copiado de `src/assets/app-icon-1024.png`)
-- `mobile/assets/splash.png` — splash screen (copiado de `src/assets/splash-2732x2732.png`)
+- `mobile/assets/splash-2732x2732.png` — splash screen (copiado de `src/assets/splash-2732x2732.png`)
 - Expo SDK 52, Android only, EAS Build con perfil `preview` (APK sin credenciales)
 
-**Para hacer un build nuevo:**
+**Para hacer un build manual:**
 ```bash
 cd mobile
 npm run build    # eas build --platform android --profile preview
 ```
+
+### Conexión runtime Web ↔ Nativa
+
+```
+Usuario abre la app → APK arranca → App.tsx monta el WebView
+                                    ↓
+                            carga magicbus91.vercel.app
+                                    ↓
+                            web funciona normal dentro del WebView
+                                    ↓
+                            [si tocás FAB de ubicación]
+                                    ↓
+                web → postMessage({type:'REQUEST_LOCATION', requestId})
+                                    ↓
+                App.tsx escucha, llama a expo-location
+                                    ↓
+                Android muestra el prompt nativo de permisos
+                                    ↓
+                respuesta vuelve a la web vía injectJavaScript +
+                CustomEvent('nativeLocationResponse')
+```
+
+- El WebView inyecta `window.__isNativeApp = true` al cargar (`onLoadEnd`). Esto permite que la web sepa si está dentro de la app nativa (usado por `DownloadCTA.tsx` para no mostrar el banner de descarga).
+- `window.ReactNativeWebView` existe solo dentro del WebView. Es la única bifurcación de comportamiento.
+- El botón back físico de Android se intercepta via `BackHandler` en `App.tsx` → llama a `webViewRef.current.goBack()` en lugar de cerrar la app, replicando el comportamiento del botón back interno.
+
+### Flujo de CI/CD
+
+| Cambio | Quién deploya | Qué se publica |
+|---|---|---|
+| `src/**` | Vercel (auto en push) | Web nueva en `magicbus91.vercel.app` |
+| `mobile/**` | GitHub Actions → EAS Build | APK nuevo en GitHub Releases |
+| Cualquier otra cosa | nada | nada |
+
+**Consecuencia clave:** si cambiás solo la web, los usuarios de la app nativa ven el cambio sin reinstalar nada (el APK siempre carga la web online). Solo necesitan reinstalar el APK si tocás `mobile/App.tsx`, permisos, plugins de expo-location, etc.
 
 ## Comandos
 

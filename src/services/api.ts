@@ -8,7 +8,6 @@ export const buscarParadas = async (query: string, lat?: number, lon?: number): 
     lat: lat?.toString() ?? '',
     lon: lon?.toString() ?? ''
   });
-  console.log('search params:', params.toString());
   const response = await fetch(`${API_BASE}/search?${params}`);
   return response.json();
 };

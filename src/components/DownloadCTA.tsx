@@ -11,16 +11,20 @@ function isAndroid(): boolean {
   return /android/i.test(navigator.userAgent);
 }
 
+function isNativeApp(): boolean {
+  return !!(window as any).__isNativeApp;
+}
+
 export default function DownloadCTA() {
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === 'undefined') return true;
-    return localStorage.getItem(CTA_DISMISSED_KEY) === 'true';
+    return sessionStorage.getItem(CTA_DISMISSED_KEY) === 'true';
   });
 
-  if (dismissed || !isAndroid()) return null;
+  if (dismissed || !isAndroid() || isNativeApp()) return null;
 
   const handleDismiss = () => {
-    localStorage.setItem(CTA_DISMISSED_KEY, 'true');
+    sessionStorage.setItem(CTA_DISMISSED_KEY, 'true');
     setDismissed(true);
   };
 

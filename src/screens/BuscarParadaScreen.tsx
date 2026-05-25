@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -24,11 +24,6 @@ export default function BuscarParadaScreen() {
   const [resultados, setResultados] = useState<Parada[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const addLog = useCallback((msg: string) => {
-    setDebugLogs(prev => [...prev, msg]);
-    console.log('[📍GeoDebug]', msg);
-  }, []);
   const navigate = useNavigate();
   const { favoritos, toggleFavorito, esFavorito } = useFavoritos();
   const { searchState, setSearchState } = useSearchContext();
@@ -118,27 +113,19 @@ export default function BuscarParadaScreen() {
     setInputValue('');
     setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
     setErrorMsg('');
-    setDebugLogs([]);
 
-    addLog('📍 Iniciando búsqueda de ubicación...');
     let lat: number, lng: number;
 
     const isNative = !!(window as any).ReactNativeWebView;
     const hasGeolocation = !!navigator.geolocation;
 
-    addLog(`¿App nativa (WebView)? ${isNative ? 'SÍ' : 'NO'}`);
-    addLog(`¿navigator.geolocation disponible? ${hasGeolocation ? 'SÍ' : 'NO'}`);
-
     if (isNative) {
-      addLog('🟡 Pidiendo ubicación al host nativo...');
       try {
         const loc = await requestNativeLocation();
         lat = loc.lat;
         lng = loc.lng;
-        addLog(`✅ Ubicación nativa: ${lat}, ${lng}`);
       } catch (err: any) {
         const reason = err?.message || 'unknown';
-        addLog(`❌ Ubicación nativa falló: ${reason}`);
         setLoading(false);
         setQueryBuscada('');
         const info =
@@ -152,7 +139,6 @@ export default function BuscarParadaScreen() {
         return;
       }
     } else if (hasGeolocation) {
-      addLog('🟡 Intentando navigator.geolocation...');
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -162,9 +148,7 @@ export default function BuscarParadaScreen() {
         });
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
-        addLog(`✅ Coordenadas obtenidas: ${lat}, ${lng}`);
       } catch {
-        addLog('❌ navigator.geolocation falló');
         setLoading(false);
         setQueryBuscada('');
         setErrorMsg('No se pudo obtener tu ubicación. Verificá los permisos del navegador.');
@@ -172,7 +156,6 @@ export default function BuscarParadaScreen() {
         return;
       }
     } else {
-      addLog('❌ Sin API de ubicación disponible');
       setLoading(false);
       setQueryBuscada('');
       setErrorMsg(
@@ -182,16 +165,12 @@ export default function BuscarParadaScreen() {
       return;
     }
 
-    addLog('🌐 Llamando a la API con coordenadas...');
     try {
       const data = await buscarParadas('', lat, lng);
       const results = data.paradas || [];
       setResultados(results);
       setSearchState({ inputValue: '', queryBuscada: ' ', resultados: results });
-      addLog(`✅ API respondió con ${results.length} resultados`);
-      setDebugLogs([]);
     } catch {
-      addLog('❌ API falló');
       setResultados([]);
       setSearchState({ inputValue: '', queryBuscada: ' ', resultados: [] });
     } finally {
@@ -474,41 +453,6 @@ export default function BuscarParadaScreen() {
       )}
 
       <DownloadCTA />
-
-      {debugLogs.length > 0 && (
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: 72,
-            left: 8,
-            right: 8,
-            bgcolor: '#1A1917',
-            borderRadius: '10px',
-            p: 1.25,
-            zIndex: 9999,
-            maxHeight: 180,
-            overflowY: 'auto',
-          }}
-        >
-          {debugLogs.map((log, i) => {
-            const ok = log.includes('✅');
-            const err = log.includes('❌');
-            return (
-              <Typography
-                key={i}
-                sx={{
-                  fontFamily: '"DM Mono", monospace',
-                  fontSize: 10,
-                  lineHeight: 1.6,
-                  color: err ? tokens.red : ok ? tokens.green : '#FFFFFF',
-                }}
-              >
-                {log}
-              </Typography>
-            );
-          })}
-        </Box>
-      )}
 
       <Fab
         sx={{

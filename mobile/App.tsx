@@ -1,5 +1,5 @@
-import { useCallback, useRef } from 'react';
-import { StyleSheet, SafeAreaView, Platform, StatusBar as RNStatusBar } from 'react-native';
+import { useCallback, useRef, useEffect } from 'react';
+import { StyleSheet, SafeAreaView, Platform, StatusBar as RNStatusBar, BackHandler } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
@@ -58,6 +58,16 @@ export default function App() {
 
   const handleNavigationState = useCallback((navState: any) => {
     return !(navState.url && !navState.url.startsWith(APP_URL));
+  }, []);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      webViewRef.current?.goBack();
+      return true;
+    };
+
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
   }, []);
 
   return (

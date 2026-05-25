@@ -123,14 +123,12 @@ export default function DetalleScreen() {
               const rec = await getLineaGobierno("1", lineaId);
               setLineaDetalle(rec);
             }
-          } catch (e: any) {
-            console.log("No se pudo cargar recorrido:", e?.message || e);
+          } catch {
           } finally {
             setLoadingRecorrido(false);
           }
         }
-      } catch (error) {
-        console.error("Error:", error);
+      } catch {
       } finally {
         if (!initialLoadDone.current) initialLoadDone.current = true;
         setLoading(false);

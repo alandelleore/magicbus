@@ -11,8 +11,8 @@ App web para consultar colectivos en Rosario en tiempo real.
 | Búsqueda de paradas por nombre/código | ✅ |
 | Llegadas en tiempo real agrupadas por línea | ✅ |
 | Mapa con ubicación de parada y colectivo | ✅ |
-| Marker del colectivo en el mapa | ❌ |
-| Ruta del recorrido en el mapa | ❌ |
+| Marker animado del colectivo en el mapa | ✅ |
+| Recorrido de la línea sobre el mapa (toggleable) | ✅ |
 | APK Android | ✅ |
 
 ## Stack
@@ -23,19 +23,18 @@ App web para consultar colectivos en Rosario en tiempo real.
 
 ## APK Android
 
-La app web tiene un wrapper nativo que se distribuye como APK.
+La app tiene un wrapper nativo distribuido como APK. El APK carga la web online, por lo que los cambios en `src/` se reflejan sin necesidad de reinstalar.
 
 - **Descargar APK:** [magicbus.apk](https://github.com/alandelleore/magicbus/releases/latest/download/magicbus.apk)
-- Al abrir la web desde un navegador móvil aparece un banner para descargar la app.
-- El APK se genera automáticamente via **EAS Build** al pushear cambios en `mobile/` (GitHub Actions).
-- Android 6+ requerido. Es un APK de debug (sin firma de producción).
+- Al abrir la web desde un navegador Android aparece un banner para descargar la app (no se muestra si ya estás usando la app nativa).
+- El APK se genera automáticamente via **EAS Build** al pushear cambios en `mobile/` (GitHub Actions), y se publica como GitHub Release.
+- Android 6+ requerido. APK de debug (sin firma de producción).
 
 ## Próximos pasos
 
-- Marker del colectivo en mapa
-- Ruta de la línea sobre el mapa
 - Firma de producción para el APK (Play Store)
-- Mejoras visuales (colores dinámicos, tooltips)
+- Búsqueda de paradas favoritas
+- Soporte multiplataforma (iOS)
 
 ## Desarrollo
 
