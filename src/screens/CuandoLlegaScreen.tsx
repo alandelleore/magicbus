@@ -78,40 +78,68 @@ export default function CuandoLlegaScreen() {
   return (
     <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: tokens.bg }}>
       <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
-        <Toolbar sx={{ minHeight: "48px !important", px: 1.5, gap: 1 }}>
+        <Toolbar disableGutters sx={{ minHeight: "48px !important" }}>
           <Box
             sx={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              bgcolor: "rgba(255,255,255,0.18)",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              cursor: "pointer",
+              gap: 1,
+              width: "100%",
+              maxWidth: 640,
+              mx: "auto",
+              px: 1.5,
             }}
-            onClick={() => navigate(-1)}
           >
-            <IconArrowLeft size={14} color="#FFFFFF" />
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                bgcolor: "rgba(255,255,255,0.18)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                cursor: "pointer",
+              }}
+              onClick={() => navigate(-1)}
+            >
+              <IconArrowLeft size={14} color="#FFFFFF" />
+            </Box>
+            <Typography
+              sx={{
+                fontFamily: '"DM Sans", sans-serif',
+                fontWeight: 600,
+                fontSize: 18,
+                color: "#FFFFFF",
+                lineHeight: 1.2,
+              }}
+            >
+              Cuándo llega
+            </Typography>
           </Box>
-          <Typography
-            sx={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontWeight: 600,
-              fontSize: 18,
-              color: "#FFFFFF",
-              lineHeight: 1.2,
-            }}
-          >
-            Cuándo llega
-          </Typography>
         </Toolbar>
       </AppBar>
 
-      {parada && <StopHeader parada={parada} secondsLeft={secondsLeft} />}
+      {parada ? (
+        <StopHeader parada={parada} secondsLeft={secondsLeft} />
+      ) : (
+        <Box
+          sx={{
+            bgcolor: tokens.surface,
+            borderBottom: `1px solid ${tokens.border}`,
+          }}
+        >
+          <Box sx={{ maxWidth: 640, mx: "auto", px: 2, py: 1.5 }}>
+            <Skeleton variant="rounded" width={90} height={20} sx={{ borderRadius: 1, mb: 0.5 }} />
+            <Skeleton variant="text" width="70%" height={22} />
+            <Skeleton variant="text" width="35%" height={18} />
+            <Skeleton variant="text" width={120} height={14} sx={{ mt: 0.75 }} />
+          </Box>
+        </Box>
+      )}
 
-      <Box sx={{ maxWidth: 600, mx: "auto", px: 0, pb: 10 }}>
+      <Box sx={{ maxWidth: 640, mx: "auto", px: 0, pb: 10 }}>
         {loading &&
           [0, 1, 2].map((i) => (
             <Box
@@ -220,7 +248,7 @@ export default function CuandoLlegaScreen() {
         sx={{
           position: "fixed",
           bottom: 16,
-          right: 16,
+          right: "max(16px, calc(50vw - 320px + 16px))",
           width: 44,
           height: 44,
           bgcolor: tokens.brand,

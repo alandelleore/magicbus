@@ -181,41 +181,55 @@ export default function BuscarParadaScreen() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: tokens.bg, display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
-        <Toolbar sx={{ minHeight: '48px !important', px: 1.5, gap: 1 }}>
-          {hasBuscado && (
-            <Box
-              onClick={() => handleInputChange('')}
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                bgcolor: 'rgba(255,255,255,0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                cursor: 'pointer',
-              }}
-            >
-              <IconArrowLeft size={14} color="#FFFFFF" />
-            </Box>
-          )}
-          <Typography
+        <Toolbar disableGutters sx={{ minHeight: '48px !important' }}>
+          <Box
             sx={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontWeight: 600,
-              fontSize: 18,
-              color: '#FFFFFF',
-              lineHeight: 1.2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              width: '100%',
+              maxWidth: 640,
+              mx: 'auto',
+              px: 1.5,
             }}
           >
-            {hasBuscado ? 'Búsqueda' : 'MagicBus'}
-          </Typography>
+            {hasBuscado && (
+              <Box
+                onClick={() => handleInputChange('')}
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                <IconArrowLeft size={14} color="#FFFFFF" />
+              </Box>
+            )}
+            {hasBuscado && (
+              <Typography
+                sx={{
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontWeight: 600,
+                  fontSize: 18,
+                  color: '#FFFFFF',
+                  lineHeight: 1.2,
+                }}
+              >
+                Búsqueda
+              </Typography>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
       {hasBuscado ? (
-        <Box sx={{ flex: 1, px: 1.5, pt: 1.5 }}>
+        <Box sx={{ flex: 1, px: 1.5, pt: 1.5, width: '100%', maxWidth: 640, mx: 'auto' }}>
           <SearchBox value={inputValue} onChange={handleInputChange} onSearch={handleSearch} />
 
           {loading && [0, 1, 2].map(i => (
@@ -458,7 +472,7 @@ export default function BuscarParadaScreen() {
         sx={{
           position: 'fixed',
           bottom: 16,
-          right: 16,
+          right: 'max(16px, calc(50vw - 320px + 16px))',
           width: 44,
           height: 44,
           bgcolor: tokens.brand,

@@ -12,11 +12,11 @@ export default function App() {
       <CssBaseline />
       <BrowserRouter>
         <SearchProvider>
-        <Routes>
-          <Route path="/" element={<BuscarParadaScreen />} />
-          <Route path="/cuando-llega/:id" element={<CuandoLlegaScreen />} />
-          <Route path="/detalle/:id/:interno" element={<DetalleScreen />} />
-        </Routes>
+          <Routes>
+            <Route path="/" element={<BuscarParadaScreen />} />
+            <Route path="/cuando-llega/:id" element={<CuandoLlegaScreen />} />
+            <Route path="/detalle/:id/:interno" element={<DetalleScreen />} />
+          </Routes>
         </SearchProvider>
       </BrowserRouter>
     </ThemeProvider>

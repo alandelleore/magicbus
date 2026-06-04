@@ -248,52 +248,59 @@ export default function DetalleScreen() {
       }}
     >
       <AppBar position="static" sx={{ bgcolor: tokens.brand }}>
-        <Toolbar sx={{ minHeight: "48px !important", px: 1.5, gap: 1 }}>
+        <Toolbar disableGutters sx={{ minHeight: "48px !important" }}>
           <Box
             sx={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              bgcolor: "rgba(255,255,255,0.18)",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              cursor: "pointer",
+              gap: 1,
+              width: "100%",
+              maxWidth: 640,
+              mx: "auto",
+              px: 1.5,
             }}
-            onClick={() => navigate(-1)}
           >
-            <IconArrowLeft size={14} color="#FFFFFF" />
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                bgcolor: "rgba(255,255,255,0.18)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                cursor: "pointer",
+              }}
+              onClick={() => navigate(-1)}
+            >
+              <IconArrowLeft size={14} color="#FFFFFF" />
+            </Box>
+            <Typography
+              sx={{
+                fontFamily: '"DM Sans", sans-serif',
+                fontWeight: 600,
+                fontSize: 18,
+                color: "#FFFFFF",
+                lineHeight: 1.2,
+              }}
+            >
+              Detalle
+            </Typography>
           </Box>
-          <Typography
-            sx={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontWeight: 400,
-              fontSize: 13,
-              color: "rgba(255,255,255,0.85)",
-              lineHeight: 1.2,
-            }}
-          >
-            Volver
-          </Typography>
-        </Toolbar>
-        <Toolbar sx={{ minHeight: "36px !important", px: 2, pt: 0 }}>
-          <Typography
-            sx={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontWeight: 600,
-              fontSize: 18,
-              color: "#FFFFFF",
-              lineHeight: 1.2,
-            }}
-          >
-            Detalle
-          </Typography>
         </Toolbar>
       </AppBar>
 
       <Box
-        sx={{ flexGrow: 1, display: "flex", flexDirection: "column", pb: 2 }}
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          pb: 2,
+          width: "100%",
+          maxWidth: 640,
+          mx: "auto",
+        }}
       >
         {loading ? (
           <Box

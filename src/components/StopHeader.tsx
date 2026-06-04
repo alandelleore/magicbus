@@ -20,11 +20,10 @@ export default function StopHeader({ parada, secondsLeft }: StopHeaderProps) {
     <Box
       sx={{
         bgcolor: tokens.surface,
-        px: 2,
-        py: 1.5,
         borderBottom: `1px solid ${tokens.border}`,
       }}
     >
+     <Box sx={{ maxWidth: 640, mx: 'auto', px: 2, py: 1.5 }}>
       <Box
         sx={{
           display: 'inline-flex',
@@ -101,6 +100,7 @@ export default function StopHeader({ parada, secondsLeft }: StopHeaderProps) {
           actualiza en {secondsLeft}s
         </Typography>
       </Box>
+     </Box>
     </Box>
   );
 }

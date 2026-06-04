@@ -33,8 +33,8 @@ export default function DownloadCTA() {
       sx={{
         position: 'fixed',
         bottom: 72,
-        left: 14,
-        right: 14,
+        left: 'max(14px, calc(50vw - 320px + 14px))',
+        right: 'max(14px, calc(50vw - 320px + 14px))',
         bgcolor: tokens.surface,
         borderRadius: '14px',
         border: `1px solid ${tokens.border}`,

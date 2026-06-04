@@ -83,6 +83,7 @@ export default function App() {
         allowsBackForwardNavigationGestures
         setSupportMultipleWindows={false}
         geolocationEnabled
+        injectedJavaScriptBeforeContentLoaded={'window.__isNativeApp = true; true;'}
         onMessage={handleMessage}
         onLoadEnd={handleLoadEnd}
         onNavigationStateChange={handleNavigationState}
