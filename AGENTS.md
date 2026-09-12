@@ -39,7 +39,7 @@
 
 ### Notas técnicas
 
-- Google Maps API key hardcodeada en `DetalleScreen.tsx`
+- Google Maps API key via `import.meta.env.VITE_GOOGLE_MAPS_API_KEY` (definir en `.env.local`)
 - `leaflet` + `react-leaflet` en package.json pero **no usados** (problemas de renderizado)
 - No requiere conversión Gauss-Kruger; las coordenadas llegan en lat/lng nativo
 
